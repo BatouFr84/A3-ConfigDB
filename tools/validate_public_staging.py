@@ -36,7 +36,7 @@ TEXT_SUFFIXES = {
 REQUIRED_FILES = {
     "README.md",
     "LICENSE",
-    "NOTICE.md",
+    "NOTICE",
     "DATA_POLICY.md",
     "AI_DISCLOSURE.md",
     "CONTRIBUTING.md",
