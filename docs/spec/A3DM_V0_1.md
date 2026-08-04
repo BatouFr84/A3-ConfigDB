@@ -1,82 +1,95 @@
-# A3DM v0.1 — Local Dataset Model
+# A3DM v0.1 — Local Snapshot Dataset Model
 
-Status: owner-approved semantic baseline.
+Status: owner-approved snapshot-first semantic baseline.
 
-A3DM is the portable local data contract used by A3-ConfigDB. It follows the useful parts of Arma 3 configuration inheritance: a complete baseline is loaded first, later profiles are applied in an explicit linear order, inherited values remain available, and the last valid definition wins.
+A3DM is the portable local data contract used by A3-ConfigDB. One package represents one complete autonomous snapshot of the final Arma 3 master configuration observed during one extraction session.
 
 ## Permanent data boundary
 
 The public repository contains schemas, software, documentation and artificial fixtures only. Real Arma 3, DLC, cDLC and mod configuration datasets are generated and retained locally by the user.
 
-## Package model
+## Snapshot-first rule
 
-A package contains one complete baseline profile and zero or more differential profiles declared by an authoritative manifest. The manifest is authoritative; profile files are never discovered implicitly.
+The common workflow is one extraction of the user's currently loaded game, DLC and mod preset. A3DM does not require:
 
-## Baseline profile
+- a separate Vanilla extraction;
+- one extraction per DLC or mod;
+- a baseline-plus-delta dependency chain;
+- replaying addon priority during import.
 
-The baseline stores complete logical classes grouped by root. Class names and property names are case-sensitive. A parent is either `null` or a class in the same root. Property absence and explicit JSON `null` are distinct.
+Arma 3 has already resolved addon load order, config patching and class inheritance before export. A3DM stores that final state.
 
-## Differential profiles
+## Provenance manifest
 
-Each delta declares exactly one direct base profile. Chains are linear, for example `P0 → P1 → P2`.
+The manifest records:
 
-Supported operations:
+- A3DM schema and package version;
+- dataset and snapshot identifiers;
+- extraction timestamp;
+- extractor version;
+- Arma 3 version;
+- user-facing preset label;
+- active DLC identifiers when detectable;
+- loaded addons/mods in observed load order;
+- artificial/source-data declarations.
 
-- `addClass` — add a class that does not exist;
-- `removeClass` — remove a class only when no remaining class inherits from it;
-- `setParent` — replace a class parent with an existing class in the same root or `null`;
-- `setProperty` — define or redefine one property.
+Addon order is provenance metadata used to identify and reproduce the source environment. It is not a reconstruction instruction.
 
-There is no generic `removeProperty` operation in v0.1. An inherited property remains inherited unless a later profile redefines it.
+## Snapshot payload
 
-## Arma-style precedence
+The snapshot contains complete logical classes grouped by config root.
 
-Profiles are reconstructed from the baseline toward the requested profile. Operations are applied in array order. When several valid operations define the same property, the last applied definition wins.
-
-```text
-P0 armor = 20
-P1 armor = 25
-P2 armor = 30
-Final P2 armor = 30
+```json
+{
+  "snapshotId": "A3CDB_Test_Snapshot_01",
+  "roots": {
+    "CfgVehicles": {
+      "A3CDB_Test_Soldier": {
+        "parent": "A3CDB_Test_Man",
+        "properties": {
+          "displayName": "A3CDB Test Rifleman",
+          "armor": 20,
+          "scope": 2
+        }
+      }
+    }
+  }
+}
 ```
 
-A class unchanged from its base is not repeated in the delta.
+Rules:
 
-## Fail-closed reconstruction
+- roots and class names are case-sensitive;
+- class names are unique within a root;
+- a parent is either `null` or a class in the same root;
+- inheritance cycles are invalid;
+- properties preserve JSON scalar, array and object values;
+- property absence and explicit JSON `null` are distinct;
+- ordering has no semantic meaning except the recorded addon load order.
 
-The complete requested profile is rejected when any operation is incoherent. Nothing is silently ignored and no partially reconstructed profile is exposed.
+## Validation
 
-Rejected cases include:
+Readers fail closed on:
 
-- modifying or removing a missing class;
-- adding an existing class;
-- assigning a missing parent;
-- creating an inheritance cycle;
-- removing a class still used as a parent;
-- unknown operations;
 - unsupported schema versions;
-- profile dependency cycles or missing base profiles.
+- missing required provenance fields;
+- snapshot identity mismatches;
+- invalid or duplicate addon-order entries;
+- malformed roots or classes;
+- missing parents;
+- inheritance cycles;
+- contradictory artificial/source-data declarations.
 
-Errors identify the profile and operation index.
+## Storage and compression
 
-## Browser semantics
+The logical package contains `manifest`, `snapshot` and checksums. Production packaging may store the snapshot as JSON or compressed JSON/Zstandard without changing its logical contents.
 
-Basic and Advanced modes consume the same immutable reconstructed state. The default class sheet shows the complete final class. A future secondary view may show raw delta operations and provenance.
+Deterministic SHA-256 checksums and canonical serialization are required before production A3XE export is declared stable.
 
-## Arrays and nested structures
+## Comparison
 
-`setProperty` replaces the complete JSON value in v0.1, including arrays and objects. Arma-style additive array syntax such as `+=` is deferred until its ordering and inheritance semantics can be represented without ambiguity.
+Differential storage is not part of core A3DM v0.1. Comparing two autonomous snapshots belongs to the future A3DIFF component.
 
-## Compatibility and checksums
+## Future Diagtor
 
-Readers fail closed on unsupported schema versions. Deterministic SHA-256 checksums are required for production packages; canonical serialization and package-directory validation will be finalized later.
-
-## Owner-approved rules
-
-1. no generic property deletion in v0.1;
-2. class deletion is explicit and dependency-safe;
-3. unchanged classes are absent from deltas;
-4. one direct base per delta, with linear chains;
-5. the last valid definition wins;
-6. any inconsistency rejects the complete profile;
-7. reconstructed state is the primary browser view.
+Diagtor is the reserved name for the future dataset diagnostic tool. It remains outside the current implementation sequence.
