@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed validation gate for the sanitized public A3-ConfigDB staging tree."""
+"""Fail-closed validation gate for the sanitized public A3-ConfigDB tree."""
 
 from __future__ import annotations
 
@@ -21,11 +21,22 @@ DENIED_PATH_PARTS = {
     "render.yaml",
 }
 
+# Detect exposed values and real private-data path references, not harmless
+# documentation or the validator's own rule names.
 DENIED_TEXT_PATTERNS = {
-    "A3CDB_AUTH_PASSWORD": re.compile(r"A3CDB_AUTH_PASSWORD", re.I),
+    "AUTH_PASSWORD_ASSIGNMENT": re.compile(
+        r"A3CDB_AUTH_PASSWORD\s*[:=]\s*(?![\"']?\$|sync\s*:\s*false|<|REDACTED|CHANGEME)[\"']?[^\s\"']+",
+        re.I,
+    ),
     "PRIVATE_KEY": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
-    "GITHUB_TOKEN_ASSIGNMENT": re.compile(r"GITHUB_TOKEN\s*[:=]\s*[^\s$]", re.I),
-    "TOTAL_V2_DATA_REFERENCE": re.compile(r"(?:data/|\\b)(?:TOTAL_V2|v2_cdlc_build|v2_build)(?:/|\\b)", re.I),
+    "GITHUB_TOKEN_ASSIGNMENT": re.compile(
+        r"GITHUB_TOKEN\s*[:=]\s*(?![\"']?\$|<|REDACTED|CHANGEME)[\"']?[^\s\"']+",
+        re.I,
+    ),
+    "PRIVATE_DATA_PATH_REFERENCE": re.compile(
+        r"(?:^|[\"'`\s])(?:data[/\\])?(?:TOTAL_V2|v2_cdlc_build|v2_build)(?:[/\\][^\s\"'`]+)",
+        re.I | re.M,
+    ),
 }
 
 TEXT_SUFFIXES = {
@@ -159,12 +170,12 @@ def main() -> int:
     validate_license(errors)
 
     if errors:
-        print("PUBLIC_STAGING_VALIDATION=REJECTED")
+        print("PUBLIC_REPOSITORY_VALIDATION=REJECTED")
         for error in errors:
             print(f"ERROR: {error}")
         return 1
 
-    print("PUBLIC_STAGING_VALIDATION=PASS")
+    print("PUBLIC_REPOSITORY_VALIDATION=PASS")
     print("DATA_BOUNDARY=PASS")
     print("ARTIFICIAL_FIXTURES=PASS")
     print("AGPL_LICENSE=PASS")
