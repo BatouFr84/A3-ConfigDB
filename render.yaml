@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: a3-configdb-public-staging-docker-validation
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: validation/render-docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: off
