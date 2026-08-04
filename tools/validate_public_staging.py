@@ -42,14 +42,14 @@ REQUIRED_FILES = {
     "CONTRIBUTING.md",
     "SECURITY.md",
     "Dockerfile",
-    "data/fixtures/public_fixture_dataset_v1.json",
+    "data/fixtures/public_fixture.json",
     "tools/a3cdb_query/public_fixture_server.py",
-    "tests/test_public_boundary.py",
+    "tests/test_public_fixture.py",
     ".github/workflows/staging-validation.yml",
 }
 
 ALLOWED_FIXTURE_PREFIX = "A3CDB_Test_"
-ALLOWED_PROFILE_IDS = {"P0_TEST", "P1_TEST", "P2_TEST"}
+ALLOWED_PROFILE_IDS = {"P0_TEST", "P1_TEST"}
 
 
 def fail(message: str, errors: list[str]) -> None:
@@ -85,7 +85,7 @@ def validate_license(errors: list[str]) -> None:
 
 
 def validate_fixture(errors: list[str]) -> None:
-    path = ROOT / "data/fixtures/public_fixture_dataset_v1.json"
+    path = ROOT / "data/fixtures/public_fixture.json"
     if not path.exists():
         fail("Public fixture dataset is missing", errors)
         return
