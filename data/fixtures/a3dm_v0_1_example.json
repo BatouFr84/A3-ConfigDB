@@ -4,63 +4,50 @@
     "schemaVersion": "0.1",
     "packageVersion": "0.1.0-test",
     "datasetId": "A3CDB_Test_A3DM_V0_1",
+    "snapshotId": "A3CDB_Test_Snapshot_01",
     "createdAt": "2026-08-04T00:00:00Z",
+    "extractorVersion": "A3XE-Test-0.1",
+    "gameVersion": "A3CDB-Test-Game-1.0",
+    "presetLabel": "Artificial test preset",
+    "loadedAddons": [
+      {"order": 0, "id": "A3CDB_Test_Core", "name": "A3CDB Test Core", "version": "1.0"},
+      {"order": 1, "id": "A3CDB_Test_Expansion", "name": "A3CDB Test Expansion", "version": "1.0"}
+    ],
+    "activeDlc": ["A3CDB_TEST_DLC"],
     "artificialDataOnly": true,
-    "sourceGameDataIncluded": false,
-    "baselineProfileId": "P0_TEST",
-    "profiles": [
-      {"profileId": "P0_TEST", "kind": "baseline", "path": "profiles/P0_TEST.json"},
-      {"profileId": "P1_TEST", "kind": "delta", "path": "profiles/P1_TEST.delta.json", "baseProfileId": "P0_TEST"},
-      {"profileId": "P2_TEST", "kind": "delta", "path": "profiles/P2_TEST.delta.json", "baseProfileId": "P1_TEST"}
-    ]
+    "sourceGameDataIncluded": false
   },
-  "profiles": {
-    "P0_TEST": {
-      "profileId": "P0_TEST",
-      "kind": "baseline",
-      "roots": {
-        "CfgVehicles": {
-          "A3CDB_Test_Man": {
-            "parent": null,
-            "properties": {"displayName": "A3CDB Test Man", "armor": 10, "scope": 1}
-          },
-          "A3CDB_Test_Soldier": {
-            "parent": "A3CDB_Test_Man",
-            "properties": {
-              "displayName": "A3CDB Test Rifleman",
-              "armor": 20,
-              "scope": 2,
-              "linkedItems": ["A3CDB_Test_Helmet", "A3CDB_Test_Vest"]
-            }
+  "snapshot": {
+    "snapshotId": "A3CDB_Test_Snapshot_01",
+    "roots": {
+      "CfgVehicles": {
+        "A3CDB_Test_Man": {
+          "parent": null,
+          "properties": {
+            "displayName": "A3CDB Test Man",
+            "armor": 10,
+            "scope": 1
+          }
+        },
+        "A3CDB_Test_Soldier": {
+          "parent": "A3CDB_Test_Man",
+          "properties": {
+            "displayName": "A3CDB Test Rifleman",
+            "armor": 20,
+            "scope": 2,
+            "linkedItems": ["A3CDB_Test_Helmet", "A3CDB_Test_Vest"]
+          }
+        }
+      },
+      "CfgWeapons": {
+        "A3CDB_Test_Rifle": {
+          "parent": null,
+          "properties": {
+            "displayName": "A3CDB Test Rifle",
+            "scope": 2
           }
         }
       }
-    },
-    "P1_TEST": {
-      "profileId": "P1_TEST",
-      "kind": "delta",
-      "baseProfileId": "P0_TEST",
-      "operations": [
-        {"op": "setProperty", "root": "CfgVehicles", "className": "A3CDB_Test_Soldier", "property": "armor", "value": 25},
-        {
-          "op": "addClass",
-          "root": "CfgVehicles",
-          "className": "A3CDB_Test_Scout",
-          "class": {
-            "parent": "A3CDB_Test_Soldier",
-            "properties": {"displayName": "A3CDB Test Scout", "armor": 15, "scope": 2}
-          }
-        }
-      ]
-    },
-    "P2_TEST": {
-      "profileId": "P2_TEST",
-      "kind": "delta",
-      "baseProfileId": "P1_TEST",
-      "operations": [
-        {"op": "setProperty", "root": "CfgVehicles", "className": "A3CDB_Test_Soldier", "property": "armor", "value": 30},
-        {"op": "setProperty", "root": "CfgVehicles", "className": "A3CDB_Test_Scout", "property": "scope", "value": 1}
-      ]
     }
   }
 }
