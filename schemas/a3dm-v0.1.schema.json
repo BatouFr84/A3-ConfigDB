@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/a3-configdb/schemas/a3dm-v0.1.schema.json",
+  "title": "A3DM v0.1 package manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "packageVersion",
+    "datasetId",
+    "createdAt",
+    "artificialDataOnly",
+    "sourceGameDataIncluded",
+    "baselineProfileId",
+    "profiles"
+  ],
+  "properties": {
+    "format": { "const": "A3DM" },
+    "schemaVersion": { "const": "0.1" },
+    "packageVersion": { "type": "string", "minLength": 1 },
+    "datasetId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "artificialDataOnly": { "type": "boolean" },
+    "sourceGameDataIncluded": { "type": "boolean" },
+    "baselineProfileId": { "$ref": "#/$defs/profileId" },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/profileEntry" }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "profileId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "profileEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profileId", "kind", "path"],
+      "properties": {
+        "profileId": { "$ref": "#/$defs/profileId" },
+        "kind": { "enum": ["baseline", "delta"] },
+        "path": {
+          "type": "string",
+          "pattern": "^profiles/[A-Za-z0-9._/-]+\\.json$"
+        },
+        "baseProfileId": { "$ref": "#/$defs/profileId" },
+        "label": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "const": "delta" } },
+            "required": ["kind"]
+          },
+          "then": { "required": ["baseProfileId"] },
+          "else": { "not": { "required": ["baseProfileId"] } }
+        }
+      ]
+    }
+  }
+}
