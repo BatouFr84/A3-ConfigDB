@@ -1,65 +1,44 @@
-# A3DM v0.1 — Reconstruction examples
+# A3DM v0.1 — Snapshot consumption
 
-All examples use artificial `A3CDB_Test_*` fixtures.
+Status: supersedes the earlier baseline-plus-delta reconstruction draft.
 
-## Baseline state
+A3DM v0.1 packages are autonomous snapshots. No profile chain is reconstructed during normal use.
 
-`P0_TEST` contains:
+## Load sequence
 
-```text
-A3CDB_Test_Soldier
-armor = 20
-obsoleteProperty = "remove me"
-```
+1. Read and validate the manifest.
+2. Verify package identity and integrity metadata.
+3. Validate the snapshot structure.
+4. Validate parent references and inheritance cycles inside each config root.
+5. Expose the complete immutable snapshot to A3IX, A3QL, Basic and Advanced browser modes.
 
-`A3CDB_Test_Scout` does not exist.
+## Arma 3 responsibility
 
-## Delta operations
+Arma 3 resolves addon load order, config patching and class inheritance before A3XE exports the master configuration. The recorded addon list and order describe provenance; A3-ConfigDB does not replay those addons.
 
-`P1_TEST` applies:
+## Example
 
-1. `setProperty armor = 25` on `A3CDB_Test_Soldier`;
-2. `removeProperty obsoleteProperty`;
-3. `addClass A3CDB_Test_Scout` inheriting from `A3CDB_Test_Soldier`.
-
-## Reconstructed state
-
-The logical `P1_TEST` result is:
+The artificial fixture contains a complete `CfgVehicles` state:
 
 ```cpp
+class A3CDB_Test_Man
+{
+    displayName = "A3CDB Test Man";
+    armor = 10;
+    scope = 1;
+};
+
 class A3CDB_Test_Soldier: A3CDB_Test_Man
 {
     displayName = "A3CDB Test Rifleman";
-    armor = 25;
+    armor = 20;
     scope = 2;
     linkedItems[] = {"A3CDB_Test_Helmet", "A3CDB_Test_Vest"};
 };
-
-class A3CDB_Test_Scout: A3CDB_Test_Soldier
-{
-    displayName = "A3CDB Test Scout";
-    armor = 15;
-    scope = 2;
-};
 ```
 
-`obsoleteProperty` is absent, not null.
+Basic and Advanced modes consume this same final snapshot.
 
-## Expected query behaviour
+## Comparison
 
-- searching `armor = 20` in `P0_TEST` returns `A3CDB_Test_Soldier`;
-- searching `armor = 25` in `P1_TEST` returns `A3CDB_Test_Soldier`;
-- searching for `obsoleteProperty` in `P1_TEST` returns no property on that class;
-- searching `className = A3CDB_Test_Scout` in `P1_TEST` returns the added class;
-- Basic and Advanced modes receive the same reconstructed logical state.
-
-## Failure examples
-
-The profile must be rejected when a delta:
-
-- removes a missing property;
-- adds a class that already exists;
-- references a missing base profile;
-- creates a dependency cycle;
-- sets a parent that does not resolve;
-- uses an unknown operation.
+Differences between two snapshots are calculated later by A3DIFF. They are not required for loading or querying either dataset.
