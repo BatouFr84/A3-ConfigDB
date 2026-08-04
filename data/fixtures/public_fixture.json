@@ -1,0 +1,57 @@
+{
+  "fixtureSchemaVersion": "PUBLIC_FIXTURE_V1",
+  "artificialDataOnly": true,
+  "sourceGameDataIncluded": false,
+  "requiredIdentifierPrefix": "A3CDB_Test_",
+  "profiles": [
+    {
+      "profileId": "P0_TEST",
+      "assets": [
+        {
+          "configRoot": "CfgVehicles",
+          "className": "A3CDB_Test_Soldier",
+          "parentClass": "A3CDB_Test_Man",
+          "properties": {
+            "displayName": "A3CDB Test Rifleman",
+            "armor": 20,
+            "faction": "A3CDB_Test_Faction",
+            "linkedItems": ["A3CDB_Test_Map", "A3CDB_Test_Radio"]
+          }
+        },
+        {
+          "configRoot": "CfgWeapons",
+          "className": "A3CDB_Test_Rifle",
+          "parentClass": "A3CDB_Test_Weapon",
+          "properties": {
+            "displayName": "A3CDB Test Rifle",
+            "magazines": ["A3CDB_Test_Magazine"]
+          }
+        }
+      ],
+      "relations": [
+        {
+          "from": "CfgVehicles/A3CDB_Test_Soldier",
+          "type": "weapon",
+          "to": "CfgWeapons/A3CDB_Test_Rifle"
+        }
+      ]
+    },
+    {
+      "profileId": "P1_TEST",
+      "assets": [
+        {
+          "configRoot": "CfgVehicles",
+          "className": "A3CDB_Test_Soldier",
+          "parentClass": "A3CDB_Test_Man",
+          "properties": {
+            "displayName": "A3CDB Test Rifleman",
+            "armor": 25,
+            "faction": "A3CDB_Test_Faction",
+            "linkedItems": ["A3CDB_Test_Map", "A3CDB_Test_Radio", "A3CDB_Test_NightVision"]
+          }
+        }
+      ],
+      "relations": []
+    }
+  ]
+}
