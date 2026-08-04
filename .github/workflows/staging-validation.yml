@@ -32,11 +32,14 @@ jobs:
       - name: Validate public boundary and complete license
         run: python tools/validate_public_staging.py
 
+      - name: Validate A3DM artificial reference package
+        run: python tools/a3dm_validator.py data/fixtures/a3dm_v0_1_example.json
+
       - name: Run fixture-only tests
         run: python -m unittest discover -s tests -p 'test_*.py'
 
-      - name: Compile fixture-only runtime
-        run: python -m py_compile tools/a3cdb_query/public_fixture_server.py
+      - name: Compile public Python runtime and validators
+        run: python -m py_compile tools/a3cdb_query/public_fixture_server.py tools/a3dm_validator.py
 
       - name: Build public fixture image
         run: docker build -t a3-configdb-public .
