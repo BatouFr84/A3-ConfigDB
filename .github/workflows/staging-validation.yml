@@ -1,21 +1,42 @@
-name: Validate Sanitized Staging
+name: Validate Public Repository
 
 on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-validation-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout public repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Validate public boundary and complete license
         run: python tools/validate_public_staging.py
+
       - name: Run fixture-only tests
         run: python -m unittest discover -s tests -p 'test_*.py'
+
       - name: Compile fixture-only runtime
         run: python -m py_compile tools/a3cdb_query/public_fixture_server.py
+
       - name: Build public fixture image
-        run: docker build -t a3-configdb-public-staging .
+        run: docker build -t a3-configdb-public .
