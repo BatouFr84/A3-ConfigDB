@@ -1,134 +1,82 @@
 # A3DM v0.1 — Local Dataset Model
 
-Status: draft specification for public review.
+Status: owner-approved semantic baseline.
 
-A3DM defines the portable local data contract used by A3-ConfigDB. It separates a complete baseline profile from compact differential profiles while preserving deterministic reconstruction and exact query semantics.
+A3DM is the portable local data contract used by A3-ConfigDB. It follows the useful parts of Arma 3 configuration inheritance: a complete baseline is loaded first, later profiles are applied in an explicit linear order, inherited values remain available, and the last valid definition wins.
 
 ## Permanent data boundary
 
 The public repository contains schemas, software, documentation and artificial fixtures only. Real Arma 3, DLC, cDLC and mod configuration datasets are generated and retained locally by the user.
 
-Every package must declare its schema version, package identity, baseline profile, profile dependencies, and whether it contains artificial or source-game data.
+## Package model
 
-## Package structure
-
-```text
-a3dm-package/
-├── manifest.json
-├── profiles/
-│   ├── P0_TEST.json
-│   └── P1_TEST.delta.json
-└── checksums.json
-```
-
-The manifest is authoritative. Profile files must not be discovered implicitly.
+A package contains one complete baseline profile and zero or more differential profiles declared by an authoritative manifest. The manifest is authoritative; profile files are never discovered implicitly.
 
 ## Baseline profile
 
-A baseline stores complete logical classes grouped by root:
-
-```json
-{
-  "profileId": "P0_TEST",
-  "kind": "baseline",
-  "roots": {
-    "CfgVehicles": {
-      "A3CDB_Test_Soldier": {
-        "parent": "A3CDB_Test_Man",
-        "properties": {
-          "displayName": "A3CDB Test Rifleman",
-          "armor": 20,
-          "scope": 2
-        }
-      }
-    }
-  }
-}
-```
-
-Rules:
-
-- roots and class names are case-sensitive;
-- class names are unique within a root;
-- `parent` is a class name in the same root or `null`;
-- properties preserve JSON scalar, array and object values;
-- property absence and explicit JSON `null` are distinct;
-- ordering has no semantic meaning.
+The baseline stores complete logical classes grouped by root. Class names and property names are case-sensitive. A parent is either `null` or a class in the same root. Property absence and explicit JSON `null` are distinct.
 
 ## Differential profiles
 
-A delta profile stores ordered operations against one declared base profile.
+Each delta declares exactly one direct base profile. Chains are linear, for example `P0 → P1 → P2`.
 
 Supported operations:
 
-- `addClass`;
-- `removeClass`;
-- `setParent`;
-- `setProperty`;
-- `removeProperty`.
+- `addClass` — add a class that does not exist;
+- `removeClass` — remove a class only when no remaining class inherits from it;
+- `setParent` — replace a class parent with an existing class in the same root or `null`;
+- `setProperty` — define or redefine one property.
 
-Example:
+There is no generic `removeProperty` operation in v0.1. An inherited property remains inherited unless a later profile redefines it.
 
-```json
-{
-  "profileId": "P1_TEST",
-  "kind": "delta",
-  "baseProfileId": "P0_TEST",
-  "operations": [
-    {
-      "op": "setProperty",
-      "root": "CfgVehicles",
-      "className": "A3CDB_Test_Soldier",
-      "property": "armor",
-      "value": 25
-    }
-  ]
-}
+## Arma-style precedence
+
+Profiles are reconstructed from the baseline toward the requested profile. Operations are applied in array order. When several valid operations define the same property, the last applied definition wins.
+
+```text
+P0 armor = 20
+P1 armor = 25
+P2 armor = 30
+Final P2 armor = 30
 ```
 
-## Reconstruction
+A class unchanged from its base is not repeated in the delta.
 
-1. Load and validate the complete baseline.
-2. Resolve the base-profile chain.
-3. Reject cycles.
-4. Apply operations in file order.
-5. Reject any invalid operation instead of silently skipping it.
-6. Expose a complete immutable logical profile to the query layer.
+## Fail-closed reconstruction
 
-Preconditions:
+The complete requested profile is rejected when any operation is incoherent. Nothing is silently ignored and no partially reconstructed profile is exposed.
 
-- `addClass` requires the class to be absent;
-- other class operations require the class to exist;
-- `removeProperty` requires the property to exist;
-- a non-null parent must resolve in the same root;
-- removing a parent class is invalid until dependent classes are updated or removed.
+Rejected cases include:
 
-## Removed versus null
+- modifying or removing a missing class;
+- adding an existing class;
+- assigning a missing parent;
+- creating an inheritance cycle;
+- removing a class still used as a parent;
+- unknown operations;
+- unsupported schema versions;
+- profile dependency cycles or missing base profiles.
 
-A removed property uses `removeProperty`. A property intentionally set to JSON `null` uses `setProperty` with `value: null`.
+Errors identify the profile and operation index.
 
-- removed: the property no longer exists;
-- null: the property exists and its value is null.
+## Browser semantics
 
-## Storage and query semantics
+Basic and Advanced modes consume the same immutable reconstructed state. The default class sheet shows the complete final class. A future secondary view may show raw delta operations and provenance.
 
-A class identical to its base is omitted from the delta. An empty delta is valid. Storage optimization must never affect query semantics: Basic and Advanced modes receive the same reconstructed class.
+## Arrays and nested structures
 
-## Compatibility
+`setProperty` replaces the complete JSON value in v0.1, including arrays and objects. Arma-style additive array syntax such as `+=` is deferred until its ordering and inheritance semantics can be represented without ambiguity.
 
-A3DM v0.1 readers fail closed on unsupported schema versions, unknown operations and malformed required fields.
+## Compatibility and checksums
 
-## Checksums
+Readers fail closed on unsupported schema versions. Deterministic SHA-256 checksums are required for production packages; canonical serialization and package-directory validation will be finalized later.
 
-The package will use deterministic SHA-256 checksums for every manifest-declared payload. Canonical serialization details are reserved for the validator build.
+## Owner-approved rules
 
-## Owner decisions required
-
-PUB015 asks the owner to validate these rules:
-
-1. property deletion is explicit through `removeProperty`, never encoded as `null`;
-2. class deletion is explicit through `removeClass`;
-3. unchanged classes are absent from delta files;
-4. each delta has one direct base profile, and chains are allowed;
-5. invalid operations reject the complete profile;
-6. the browser shows reconstructed state by default, with a future optional delta-inspection view.
+1. no generic property deletion in v0.1;
+2. class deletion is explicit and dependency-safe;
+3. unchanged classes are absent from deltas;
+4. one direct base per delta, with linear chains;
+5. the last valid definition wins;
+6. any inconsistency rejects the complete profile;
+7. reconstructed state is the primary browser view.
