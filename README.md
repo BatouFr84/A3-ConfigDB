@@ -22,4 +22,6 @@ Arma 3 and related names are trademarks of their respective owners. A3-ConfigDB 
 
 ## Current public staging status
 
-This repository is a private sanitized staging snapshot. Runtime and Docker validation remain pending because the private GitHub Actions quota is exhausted. No public-release authorization is implied by this staging state.
+The sanitized staging snapshot passed the static data-boundary audit, complete AGPL license validation, Python tests, runtime smoke tests, a real Docker build on Render and mobile HTTP verification on 4 August 2026.
+
+The repository remains private only because the final repository naming and visibility transition require an explicit owner action. No real Arma 3 configuration dataset is included.
