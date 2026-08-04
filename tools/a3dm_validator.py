@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""Fail-closed A3DM v0.1 validator and profile reconstructor."""
+"""Fail-closed validator for A3DM v0.1 snapshot packages."""
 
 from __future__ import annotations
 
-import copy
 import json
 import sys
 from pathlib import Path
 from typing import Any
-
-SUPPORTED_OPS = {"addClass", "removeClass", "setParent", "setProperty"}
 
 
 class A3DMValidationError(ValueError):
@@ -20,14 +17,57 @@ def _error(message: str) -> None:
     raise A3DMValidationError(message)
 
 
-def _check_parent_graph(root_name: str, classes: dict[str, Any]) -> None:
+def _require_non_empty_string(value: Any, field: str) -> str:
+    if not isinstance(value, str) or not value:
+        _error(f"{field} must be a non-empty string")
+    return value
+
+
+def _validate_addons(addons: Any) -> None:
+    if not isinstance(addons, list):
+        _error("manifest.loadedAddons must be an array")
+
+    seen_orders: set[int] = set()
+    seen_ids: set[str] = set()
+    expected_order = 0
+
+    for index, addon in enumerate(addons):
+        if not isinstance(addon, dict):
+            _error(f"manifest.loadedAddons[{index}] must be an object")
+        order = addon.get("order")
+        addon_id = _require_non_empty_string(addon.get("id"), f"manifest.loadedAddons[{index}].id")
+        _require_non_empty_string(addon.get("name"), f"manifest.loadedAddons[{index}].name")
+        if not isinstance(order, int) or order < 0:
+            _error(f"manifest.loadedAddons[{index}].order must be a non-negative integer")
+        if order in seen_orders:
+            _error(f"duplicate addon order: {order}")
+        if addon_id in seen_ids:
+            _error(f"duplicate addon id: {addon_id}")
+        if order != expected_order:
+            _error(
+                "manifest.loadedAddons order must be contiguous and match array order: "
+                f"expected {expected_order}, got {order}"
+            )
+        seen_orders.add(order)
+        seen_ids.add(addon_id)
+        expected_order += 1
+
+
+def _validate_parent_graph(root_name: str, classes: Any) -> None:
+    if not isinstance(classes, dict):
+        _error(f"snapshot.roots.{root_name} must be an object")
+
     for class_name, class_data in classes.items():
+        if not isinstance(class_name, str) or not class_name:
+            _error(f"snapshot.roots.{root_name} contains an invalid class name")
         if not isinstance(class_data, dict):
             _error(f"{root_name}/{class_name}: class must be an object")
         parent = class_data.get("parent")
+        if parent is not None and not isinstance(parent, str):
+            _error(f"{root_name}/{class_name}: parent must be string or null")
         if parent is not None and parent not in classes:
             _error(f"{root_name}/{class_name}: missing parent {parent!r}")
-        if not isinstance(class_data.get("properties", {}), dict):
+        if not isinstance(class_data.get("properties"), dict):
             _error(f"{root_name}/{class_name}: properties must be an object")
 
     for start in classes:
@@ -40,164 +80,80 @@ def _check_parent_graph(root_name: str, classes: dict[str, Any]) -> None:
             current = classes[current].get("parent")
 
 
-def _validate_state(roots: dict[str, Any]) -> None:
-    if not isinstance(roots, dict):
-        _error("roots must be an object")
-    for root_name, classes in roots.items():
-        if not isinstance(root_name, str) or not root_name:
-            _error("root names must be non-empty strings")
-        if not isinstance(classes, dict):
-            _error(f"{root_name}: root must contain an object of classes")
-        _check_parent_graph(root_name, classes)
-
-
-def _apply_operation(state: dict[str, Any], profile_id: str, index: int, op: dict[str, Any]) -> None:
-    if not isinstance(op, dict):
-        _error(f"{profile_id} operation {index}: operation must be an object")
-    op_name = op.get("op")
-    if op_name not in SUPPORTED_OPS:
-        _error(f"{profile_id} operation {index}: unsupported operation {op_name!r}")
-
-    root_name = op.get("root")
-    class_name = op.get("className")
-    if not isinstance(root_name, str) or not isinstance(class_name, str):
-        _error(f"{profile_id} operation {index}: root and className are required strings")
-
-    classes = state.setdefault(root_name, {})
-    if not isinstance(classes, dict):
-        _error(f"{profile_id} operation {index}: root {root_name!r} is invalid")
-
-    if op_name == "addClass":
-        if class_name in classes:
-            _error(f"{profile_id} operation {index}: class already exists: {class_name}")
-        class_data = copy.deepcopy(op.get("class"))
-        if not isinstance(class_data, dict):
-            _error(f"{profile_id} operation {index}: addClass requires class object")
-        class_data.setdefault("parent", None)
-        class_data.setdefault("properties", {})
-        classes[class_name] = class_data
-
-    elif op_name == "removeClass":
-        if class_name not in classes:
-            _error(f"{profile_id} operation {index}: missing class: {class_name}")
-        dependents = [name for name, data in classes.items() if data.get("parent") == class_name]
-        if dependents:
-            _error(
-                f"{profile_id} operation {index}: cannot remove {class_name}; "
-                f"dependent classes: {', '.join(sorted(dependents))}"
-            )
-        del classes[class_name]
-
-    elif op_name == "setParent":
-        if class_name not in classes:
-            _error(f"{profile_id} operation {index}: missing class: {class_name}")
-        parent = op.get("parent")
-        if parent is not None and not isinstance(parent, str):
-            _error(f"{profile_id} operation {index}: parent must be string or null")
-        classes[class_name]["parent"] = parent
-
-    elif op_name == "setProperty":
-        if class_name not in classes:
-            _error(f"{profile_id} operation {index}: missing class: {class_name}")
-        property_name = op.get("property")
-        if not isinstance(property_name, str) or not property_name:
-            _error(f"{profile_id} operation {index}: property is required")
-        classes[class_name].setdefault("properties", {})[property_name] = copy.deepcopy(op.get("value"))
-
-    try:
-        _check_parent_graph(root_name, classes)
-    except A3DMValidationError as exc:
-        _error(f"{profile_id} operation {index}: {exc}")
-
-
-def validate_and_reconstruct(package: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def validate_snapshot_package(package: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(package, dict):
         _error("package must be an object")
+
     manifest = package.get("manifest")
-    profiles = package.get("profiles")
-    if not isinstance(manifest, dict) or not isinstance(profiles, dict):
-        _error("package requires manifest and profiles objects")
-    if manifest.get("format") != "A3DM" or manifest.get("schemaVersion") != "0.1":
-        _error("unsupported A3DM format or schemaVersion")
+    snapshot = package.get("snapshot")
+    if not isinstance(manifest, dict) or not isinstance(snapshot, dict):
+        _error("package requires manifest and snapshot objects")
 
-    entries = manifest.get("profiles")
-    baseline_id = manifest.get("baselineProfileId")
-    if not isinstance(entries, list) or not entries:
-        _error("manifest profiles must be a non-empty array")
+    if manifest.get("format") != "A3DM":
+        _error("unsupported package format")
+    if manifest.get("schemaVersion") != "0.1":
+        _error("unsupported A3DM schemaVersion")
 
-    entry_map: dict[str, dict[str, Any]] = {}
-    for entry in entries:
-        if not isinstance(entry, dict):
-            _error("manifest profile entries must be objects")
-        profile_id = entry.get("profileId")
-        if not isinstance(profile_id, str) or not profile_id:
-            _error("manifest profileId must be a non-empty string")
-        if profile_id in entry_map:
-            _error(f"duplicate manifest profileId: {profile_id}")
-        entry_map[profile_id] = entry
+    required_strings = (
+        "packageVersion",
+        "datasetId",
+        "snapshotId",
+        "createdAt",
+        "extractorVersion",
+        "gameVersion",
+        "presetLabel",
+    )
+    for field in required_strings:
+        _require_non_empty_string(manifest.get(field), f"manifest.{field}")
 
-    if baseline_id not in entry_map or entry_map[baseline_id].get("kind") != "baseline":
-        _error("baselineProfileId must reference the baseline entry")
-    if set(profiles) != set(entry_map):
-        _error("manifest and embedded profile identifiers differ")
+    if not isinstance(manifest.get("artificialDataOnly"), bool):
+        _error("manifest.artificialDataOnly must be boolean")
+    if not isinstance(manifest.get("sourceGameDataIncluded"), bool):
+        _error("manifest.sourceGameDataIncluded must be boolean")
+    if manifest.get("artificialDataOnly") and manifest.get("sourceGameDataIncluded"):
+        _error("artificialDataOnly=true conflicts with sourceGameDataIncluded=true")
 
-    cache: dict[str, dict[str, Any]] = {}
-    visiting: set[str] = set()
+    active_dlc = manifest.get("activeDlc")
+    if not isinstance(active_dlc, list) or any(not isinstance(item, str) or not item for item in active_dlc):
+        _error("manifest.activeDlc must be an array of non-empty strings")
+    if len(active_dlc) != len(set(active_dlc)):
+        _error("manifest.activeDlc contains duplicates")
 
-    def build(profile_id: str) -> dict[str, Any]:
-        if profile_id in cache:
-            return copy.deepcopy(cache[profile_id])
-        if profile_id in visiting:
-            _error(f"profile dependency cycle involving {profile_id}")
-        if profile_id not in entry_map:
-            _error(f"missing profile dependency: {profile_id}")
-        visiting.add(profile_id)
+    _validate_addons(manifest.get("loadedAddons"))
 
-        entry = entry_map[profile_id]
-        payload = profiles[profile_id]
-        if not isinstance(payload, dict) or payload.get("profileId") != profile_id:
-            _error(f"{profile_id}: payload identity mismatch")
-        if payload.get("kind") != entry.get("kind"):
-            _error(f"{profile_id}: payload kind mismatch")
+    snapshot_id = _require_non_empty_string(snapshot.get("snapshotId"), "snapshot.snapshotId")
+    if snapshot_id != manifest.get("snapshotId"):
+        _error("manifest.snapshotId and snapshot.snapshotId differ")
 
-        if entry.get("kind") == "baseline":
-            state = copy.deepcopy(payload.get("roots"))
-            _validate_state(state)
-        elif entry.get("kind") == "delta":
-            base_id = entry.get("baseProfileId")
-            if payload.get("baseProfileId") != base_id or not isinstance(base_id, str):
-                _error(f"{profile_id}: baseProfileId mismatch")
-            state = build(base_id)
-            operations = payload.get("operations")
-            if not isinstance(operations, list):
-                _error(f"{profile_id}: operations must be an array")
-            for index, operation in enumerate(operations):
-                _apply_operation(state, profile_id, index, operation)
-            _validate_state(state)
-        else:
-            _error(f"{profile_id}: unsupported profile kind")
+    roots = snapshot.get("roots")
+    if not isinstance(roots, dict) or not roots:
+        _error("snapshot.roots must be a non-empty object")
 
-        visiting.remove(profile_id)
-        cache[profile_id] = copy.deepcopy(state)
-        return copy.deepcopy(state)
+    for root_name, classes in roots.items():
+        if not isinstance(root_name, str) or not root_name:
+            _error("snapshot root names must be non-empty strings")
+        _validate_parent_graph(root_name, classes)
 
-    for profile_id in entry_map:
-        build(profile_id)
-    return cache
+    return snapshot
 
 
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
-        print("Usage: python tools/a3dm_validator.py <combined-package.json>", file=sys.stderr)
+        print("Usage: python tools/a3dm_validator.py <snapshot-package.json>", file=sys.stderr)
         return 2
+
     try:
         package = json.loads(Path(argv[1]).read_text(encoding="utf-8"))
-        reconstructed = validate_and_reconstruct(package)
+        snapshot = validate_snapshot_package(package)
     except (OSError, json.JSONDecodeError, A3DMValidationError) as exc:
         print(f"A3DM_VALIDATION=REJECTED\nERROR: {exc}")
         return 1
+
+    class_count = sum(len(classes) for classes in snapshot["roots"].values())
     print("A3DM_VALIDATION=PASS")
-    print("PROFILES=" + ",".join(sorted(reconstructed)))
+    print(f"SNAPSHOT={snapshot['snapshotId']}")
+    print(f"ROOTS={len(snapshot['roots'])}")
+    print(f"CLASSES={class_count}")
     return 0
 
 
