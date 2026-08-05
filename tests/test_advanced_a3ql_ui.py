@@ -19,9 +19,9 @@ class AdvancedA3QLUITests(unittest.TestCase):
         self.assertIn("example-query", script)
 
     def test_server_routes_advanced_queries(self):
-        server = (ROOT / "tools" / "a3cdb_query" / "public_fixture_server.py").read_text(encoding="utf-8")
+        server = (ROOT / "tools" / "a3cdb_query" / "local_http_server.py").read_text(encoding="utf-8")
         self.assertIn('"/api/advanced"', server)
-        self.assertIn("BACKEND.execute_advanced(source)", server)
+        self.assertIn("application.execute_advanced(source)", server)
         self.assertIn("INVALID_A3QL_REQUEST", server)
 
 
