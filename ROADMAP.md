@@ -1,74 +1,154 @@
 # A3-ConfigDB Public Roadmap
 
-This roadmap describes the intended direction of the public project. Checkpoints may be refined, but the data boundary is permanent: real game configuration databases are generated and controlled locally by the user and are not distributed by this repository.
+This roadmap follows the snapshot-first, local-first architecture frozen at PUB028. The permanent data boundary remains unchanged: this repository distributes software and artificial fixtures, not extracted Arma 3 configuration databases.
 
-## Phase 0 — Public foundation
+## Completed foundation — PUB001 to PUB028
 
 - [x] Sanitized independent public repository
-- [x] AGPL-3.0-or-later licensing
-- [x] Artificial fixture dataset
-- [x] Fixture-only Basic browser
-- [x] Python and Docker runtime validation
-- [x] Public continuous integration
+- [x] AGPL-3.0-or-later licensing and public-data boundary
+- [x] Artificial A3DM fixture
+- [x] Complete autonomous snapshot doctrine
+- [x] A3DM schema and validation baseline
+- [x] Immutable snapshot loading API
+- [x] A3IX exact index baseline
+- [x] A3IX property index baseline
+- [x] A3QM normalized query model
+- [x] A3QL v0.1 grammar and runtime
+- [x] A3QE deterministic query execution
+- [x] Browser backend baseline
+- [x] Mobile-first Basic search UI
+- [x] Advanced A3QL UI
+- [x] Basic and Advanced class viewer
+- [x] Public CI and Docker validation
 
-## Phase 1 — Local dataset contract
+## Phase 1 — Local application and dataset lifecycle
 
-- [ ] Versioned local dataset schema
-- [ ] Import validation and diagnostics
-- [ ] Compressed local dataset support
-- [ ] Deterministic dataset manifest and checksums
-- [ ] Explicit compatibility rules
+### PUB029 — Local HTTP application baseline
 
-## Phase 2 — Local extraction pipeline
+- formalize local endpoints;
+- stabilize class API behavior;
+- improve startup and runtime errors.
 
-- [ ] Arma 3-side export contract
-- [ ] Local importer and normalizer
-- [ ] Incremental profile generation
-- [ ] P0 baseline plus differential profile overlays
-- [ ] User documentation and recovery procedures
+### PUB030 — Local dataset loader
 
-## Phase 3 — A3IX indexing
+- select a local A3DM snapshot;
+- load and unload safely;
+- display manifest and provenance;
+- reject absent, invalid or incompatible datasets clearly.
 
-- [ ] Complete exact-value index
-- [ ] Search-oriented text index
-- [ ] Hybrid indexed and fallback execution
-- [ ] Memory-bounded index generation
-- [ ] Performance measurements on representative local datasets
+## Phase 2 — Search completeness and performance
 
-## Phase 4 — Query platform
+### PUB031 — A3IX text index baseline
 
-- [ ] Common normalized query model and AST
-- [ ] Basic Query Builder generating visible A3QL
-- [ ] Versioned A3QL grammar
-- [ ] Strict A3QP parser
-- [ ] A3QE validation and execution with precise errors
-- [ ] Advanced A3QL editor, help and examples
+- partial case-insensitive search for classname and displayName;
+- text search for author, faction and DLC;
+- deterministic ordering.
 
-## Phase 5 — Browser and relations
+### PUB032 — Hybrid query planner
 
-- [ ] Basic asset sheets
-- [ ] Advanced C++-style configuration view
-- [ ] Parent and inheritance navigation
-- [ ] Incoming and outgoing relations
-- [ ] Sub-assets and linked assets
-- [ ] Mobile-first usability pass
+- choose exact, property or text indexes;
+- permit only explicit controlled fallback scans;
+- expose the execution plan;
+- never return silent partial results.
 
-## Phase 6 — Exports and distribution
+### PUB033 — Sorting, pagination and metadata
 
-- [ ] Unified A3XE export pipeline
-- [ ] JSON, CSV and Markdown exports
-- [ ] SQF Array and SQF HashMap exports
-- [ ] Offline local server package
-- [ ] Self-hosted Docker package
-- [ ] Release documentation and upgrade path
+- sort fields and direction;
+- offset and limit;
+- total matching result count;
+- execution duration and index usage.
+
+## Phase 3 — Relations, navigation and exports
+
+### PUB034 — Relations baseline
+
+- class parent and children;
+- vehicle to weapons;
+- weapon to magazines;
+- magazine to ammo;
+- validation of missing targets.
+
+### PUB035 — Browser navigation baseline
+
+- clickable parents and relations;
+- back/forward history;
+- stable local URLs;
+- preserve Basic or Advanced view mode.
+
+### PUB036 — Export baseline
+
+- JSON;
+- CSV;
+- Markdown;
+- SQF Array;
+- C++-style class output.
+
+## Phase 4 — A3XE extractor foundation
+
+### PUB037 — Extraction contract
+
+Freeze roots, value types, inheritance representation, metadata, addon order, batching, integrity rules and final report format.
+
+### PUB038 — Artificial exporter pipeline
+
+Validate the complete pipeline without Arma 3:
+
+```text
+raw artificial export
+→ normalization
+→ A3DM snapshot
+→ validation
+→ indexing
+→ Browser
+```
+
+### PUB039 — First SQF exporter prototype
+
+Implement the first real Arma 3-side export when PC testing is available.
+
+### PUB040 — Integrity, batching and resume
+
+- progress reporting;
+- batch export;
+- interrupted-export recovery;
+- class counts and completeness checks;
+- actionable extraction report.
+
+## Phase 5 — Real local datasets and packaging
+
+- representative local dataset performance tests;
+- compressed and split A3DM storage;
+- persistent index generation;
+- offline local-server package;
+- self-hosted Docker package;
+- upgrade and compatibility policy.
+
+## Deferred components
+
+### A3DIFF
+
+Compare two complete snapshots and report added, removed and modified classes or properties. It is not a storage dependency of A3DM.
+
+### Diagtor
+
+Future standalone dataset diagnostic and compatibility tool. It will be implemented only after A3DM and A3XE are sufficiently stable.
 
 ## Target 1.0
 
-A3-ConfigDB 1.0 should let a user generate configuration data from their own Arma 3 installation, load it locally, search it through Basic and Advanced A3QL modes, inspect inheritance and relations, and export results without uploading or redistributing the source dataset.
+A3-ConfigDB 1.0 must let a user:
+
+1. generate a complete dataset from their own Arma 3 installation and active launch preset;
+2. retain game version, DLC/addon provenance and observed load order;
+3. validate and load the dataset locally;
+4. index and search it through Basic and Advanced A3QL modes;
+5. inspect local and inherited configuration values;
+6. navigate inheritance and key relations;
+7. export selected results;
+8. keep the real dataset under local control.
 
 ## Out of scope for the public repository
 
 - hosting or distributing extracted Arma 3, DLC, cDLC or mod databases;
 - bypassing ownership, licensing or access controls;
-- new authentication development before the local and self-hosted products require it;
-- irreversible dependence on a single cloud provider.
+- requiring cloud storage for normal operation;
+- silently returning incomplete search results.
