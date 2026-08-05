@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from tools.a3_browser_backend import A3BrowserBackend
+from tools.a3dm_snapshot import A3DMSnapshot
+
 ROOT = Path(__file__).resolve().parents[2]
-FIXTURE = ROOT / "data" / "fixtures" / "public_fixture.json"
+FIXTURE = ROOT / "data" / "fixtures" / "a3dm_v0_1_example.json"
 WEB = ROOT / "web"
-DATA = json.loads(FIXTURE.read_text(encoding="utf-8"))
+SNAPSHOT = A3DMSnapshot.from_file(FIXTURE)
+BACKEND = A3BrowserBackend(SNAPSHOT)
 
 
 def _json(handler: BaseHTTPRequestHandler, status: int, payload: object) -> None:
@@ -21,6 +26,24 @@ def _json(handler: BaseHTTPRequestHandler, status: int, payload: object) -> None
     handler.wfile.write(body)
 
 
+def _browser_response(handler: BaseHTTPRequestHandler, response) -> None:
+    body = dict(response.body)
+    if response.status == 200 and body.get("status") == "ok" and "results" in body.get("data", {}):
+        enriched = []
+        for item in body["data"]["results"]:
+            root = item["root"]
+            classname = item["classname"]
+            class_data = SNAPSHOT.get_class(root, classname)
+            resolved = SNAPSHOT.resolved_properties(root, classname)
+            enriched.append({
+                **item,
+                "displayName": resolved.get("displayName"),
+                "parent": class_data.get("parent"),
+            })
+        body = {**body, "data": {**body["data"], "results": enriched}}
+    _json(handler, response.status, body)
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: object) -> None:
         print(f"{self.address_string()} - {fmt % args}")
@@ -30,20 +53,16 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/healthz":
             return _json(self, 200, {"status": "ok", "dataset": "artificial"})
         if path == "/api/capabilities":
-            return _json(self, 200, {
-                "mode": "PUBLIC_FIXTURE_ONLY",
-                "profiles": [p["profileId"] for p in DATA["profiles"]],
-                "realGameData": False,
-                "basicSearch": True,
-                "advancedA3QL": False
-            })
+            return _browser_response(self, BACKEND.capabilities())
+
         target = WEB / ("index.html" if path == "/" else path.lstrip("/"))
-        if not target.is_file() or WEB not in target.resolve().parents:
+        resolved = target.resolve()
+        if not target.is_file() or (resolved != WEB.resolve() and WEB.resolve() not in resolved.parents):
             return _json(self, 404, {"error": "not_found"})
         body = target.read_bytes()
-        content_type = "text/html; charset=utf-8" if target.suffix == ".html" else "text/plain; charset=utf-8"
+        content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
         self.send_response(200)
-        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Type", f"{content_type}; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -53,32 +72,16 @@ class Handler(BaseHTTPRequestHandler):
             return _json(self, 404, {"error": "not_found"})
         try:
             length = min(int(self.headers.get("Content-Length", "0")), 65536)
-            request = json.loads(self.rfile.read(length) or b"{}")
-            profile_id = str(request.get("profile", "P0_TEST"))
-            root = str(request.get("root", "")).strip()
-            field = str(request.get("field", "className"))
-            value = str(request.get("value", "")).casefold()
-            limit = max(1, min(int(request.get("limit", 100)), 500))
-            profile = next(p for p in DATA["profiles"] if p["profileId"] == profile_id)
-            records = []
-            for asset in profile["assets"]:
-                if root and asset["configRoot"] != root:
-                    continue
-                candidate = asset.get(field, asset.get("properties", {}).get(field, ""))
-                if value and value not in json.dumps(candidate, ensure_ascii=False).casefold():
-                    continue
-                records.append(asset)
-                if len(records) >= limit:
-                    break
-            return _json(self, 200, {"profile": profile_id, "records": records, "returned": len(records)})
-        except (ValueError, KeyError, StopIteration, json.JSONDecodeError) as exc:
-            return _json(self, 400, {"error": "invalid_request", "message": str(exc)})
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, json.JSONDecodeError) as exc:
+            return _json(self, 400, {"status": "error", "error": {"code": "INVALID_JSON", "message": str(exc)}})
+        return _browser_response(self, BACKEND.execute_basic(payload))
 
 
 def main() -> None:
     port = int(os.environ.get("PORT", "8080"))
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    print(f"A3-ConfigDB public fixture server listening on 0.0.0.0:{port}")
+    print(f"A3-ConfigDB PUB025 listening on 0.0.0.0:{port}")
     server.serve_forever()
 
 
