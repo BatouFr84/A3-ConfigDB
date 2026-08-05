@@ -9,12 +9,17 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
+from tools.a3dm_snapshot import A3DMSnapshotError
 from tools.a3xe_inheritance import A3XEInheritanceError, build_inheritance_chains
 from tools.a3xe_sqf_capture_converter import A3XESQFCaptureError, convert_capture
 
 
 def convert_capture_with_inheritance(capture: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    package, envelope = convert_capture(capture)
+    try:
+        package, envelope = convert_capture(capture)
+    except A3DMSnapshotError as exc:
+        raise A3XESQFCaptureError(str(exc)) from exc
+
     root = str(capture["root"])
     classes = package["snapshot"]["roots"][root]
     try:
