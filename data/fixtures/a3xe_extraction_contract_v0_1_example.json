@@ -1,0 +1,46 @@
+{
+  "contractVersion": "0.1",
+  "run": {
+    "runId": "A3XE_TEST_RUN_0001",
+    "extractorVersion": "A3XE-Test-0.1",
+    "startedAt": "2026-08-05T00:00:00Z",
+    "completedAt": "2026-08-05T00:00:05Z",
+    "status": "complete",
+    "resumeOf": null
+  },
+  "environment": {
+    "game": {"product": "Arma 3", "version": "A3CDB-Test-Game-1.0", "build": "test"},
+    "platform": "test",
+    "language": "English",
+    "loadedAddons": [
+      {"order": 0, "id": "A3CDB_Test_Core", "name": "A3CDB Test Core", "version": "1.0", "source": "base"},
+      {"order": 1, "id": "A3CDB_Test_Expansion", "name": "A3CDB Test Expansion", "version": "1.0", "source": "mod"}
+    ],
+    "activeDlc": ["A3CDB_TEST_DLC"]
+  },
+  "selection": {
+    "roots": ["CfgVehicles", "CfgWeapons"],
+    "propertyMode": "local_and_resolved",
+    "inheritanceMode": "explicit_parent",
+    "relationMode": "known_fields"
+  },
+  "progress": {
+    "rootsTotal": 2,
+    "rootsComplete": 2,
+    "classesDiscovered": 3,
+    "classesSerialized": 3,
+    "lastRoot": "CfgWeapons",
+    "lastClassname": "A3CDB_Test_Rifle"
+  },
+  "integrity": {
+    "algorithm": "sha256",
+    "snapshotDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+    "complete": true,
+    "canonicalJson": true
+  },
+  "diagnostics": {
+    "errors": [],
+    "warnings": [],
+    "skipped": []
+  }
+}
