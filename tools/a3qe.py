@@ -31,7 +31,7 @@ class A3QEQuery:
     filters: tuple[A3QEFilter, ...] = ()
     limit: int = 100
     offset: int = 0
-    sort: str = "classname"
+    sort: str = "root"
     direction: str = "asc"
 
 
