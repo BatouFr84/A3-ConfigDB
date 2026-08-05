@@ -21,8 +21,6 @@ class BrowserBackendResponse:
 
 
 class A3BrowserBackend:
-    """Stable JSON-oriented facade over A3QM, A3QL, and A3QE."""
-
     def __init__(self, snapshot: A3DMSnapshot):
         self._snapshot = snapshot
         self._engine = A3QEEngine(snapshot)
@@ -34,26 +32,21 @@ class A3BrowserBackend:
             "queryModes": ["basic", "advanced"],
             "operators": ["eq", "contains"],
             "textIndexedFields": list(self._engine.text_indexed_fields),
-            "planner": {
-                "indexes": ["exact", "property", "text"],
-                "completeResultsOnly": True,
-                "silentFallback": False,
-            },
+            "sorting": {"fields": ["classname", "displayName", "root"], "directions": ["asc", "desc"]},
+            "pagination": {"offset": True, "maxLimit": 500},
+            "planner": {"indexes": ["exact", "property", "text"], "completeResultsOnly": True, "silentFallback": False},
             "maxLimit": 500,
         })
 
     def execute_basic(self, payload: Mapping[str, Any]) -> BrowserBackendResponse:
         try:
             normalized = normalize_query(payload)
-            results = self._engine.execute(normalized.to_a3qe())
-            plan = self._engine.last_plan
-            if plan is None:
-                raise A3QEQueryError("query plan was not produced")
+            execution = self._engine.execute_page(normalized.to_a3qe())
         except A3QMError as exc:
             return self._error(400, "QUERY_VALIDATION_ERROR", str(exc))
         except A3QEQueryError as exc:
             return self._error(422, "QUERY_EXECUTION_ERROR", str(exc))
-        return self._results("basic", results, normalized.limit, plan)
+        return self._results("basic", execution.results, execution.limit, execution.offset, execution.total, execution.sort, execution.direction, execution.duration_ms, execution.plan)
 
     def execute_advanced(self, source: str) -> BrowserBackendResponse:
         try:
@@ -62,28 +55,27 @@ class A3BrowserBackend:
             return self._error(400, "A3QL_SYNTAX_ERROR", str(exc))
         except A3QLExecutionError as exc:
             return self._error(422, "A3QL_EXECUTION_ERROR", str(exc))
-        return self._results("advanced", execution.results, execution.limit, execution.plan)
+        return self._results("advanced", execution.results, execution.limit, execution.offset, execution.total, execution.sort, execution.direction, execution.duration_ms, execution.plan)
 
-    def _results(self, mode: str, results: Any, limit: int, plan: A3QEPlan) -> BrowserBackendResponse:
+    def _results(self, mode: str, results: Any, limit: int, offset: int, total: int, sort: str, direction: str, duration_ms: float, plan: A3QEPlan) -> BrowserBackendResponse:
         items = [{"root": item.root, "classname": item.classname} for item in results]
+        indexes = sorted({step.index for step in plan.steps})
         return self._ok({
             "mode": mode,
             "snapshot": self._snapshot_metadata(),
             "limit": limit,
+            "offset": offset,
             "count": len(items),
+            "total": total,
+            "sort": {"field": sort, "direction": direction},
+            "execution": {"durationMs": duration_ms, "indexesUsed": indexes},
             "executionPlan": plan.to_dict(),
             "results": items,
         })
 
     def _snapshot_metadata(self) -> Mapping[str, Any]:
         manifest = self._snapshot.manifest
-        return {
-            "snapshotId": self._snapshot.snapshot_id,
-            "gameVersion": self._snapshot.game_version,
-            "presetLabel": self._snapshot.preset_label,
-            "schemaVersion": manifest["schemaVersion"],
-            "roots": list(self._snapshot.roots),
-        }
+        return {"snapshotId": self._snapshot.snapshot_id, "gameVersion": self._snapshot.game_version, "presetLabel": self._snapshot.preset_label, "schemaVersion": manifest["schemaVersion"], "roots": list(self._snapshot.roots)}
 
     @staticmethod
     def _ok(data: Mapping[str, Any]) -> BrowserBackendResponse:
@@ -91,7 +83,4 @@ class A3BrowserBackend:
 
     @staticmethod
     def _error(status: int, code: str, message: str) -> BrowserBackendResponse:
-        return BrowserBackendResponse(status, {
-            "status": "error",
-            "error": {"code": code, "message": message},
-        })
+        return BrowserBackendResponse(status, {"status": "error", "error": {"code": code, "message": message}})
