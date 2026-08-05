@@ -19,6 +19,10 @@ class A3BrowserBackendTests(unittest.TestCase):
         self.assertEqual(response.body["data"]["maxLimit"], 500)
         self.assertIn("basic", response.body["data"]["queryModes"])
         self.assertIn("advanced", response.body["data"]["queryModes"])
+        self.assertEqual(
+            response.body["data"]["textIndexedFields"],
+            ["classname", "displayName", "author", "faction", "dlc"],
+        )
 
     def test_basic_query_returns_json_ready_results(self):
         response = self.backend.execute_basic({
@@ -34,6 +38,16 @@ class A3BrowserBackendTests(unittest.TestCase):
             {"root": "CfgVehicles", "classname": "A3CDB_Test_Soldier"},
         )
 
+    def test_basic_text_query_uses_substring_index(self):
+        response = self.backend.execute_basic({
+            "root": "CfgWeapons",
+            "filters": [{"field": "classname", "operator": "contains", "value": "rif"}],
+            "limit": 10,
+        })
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.body["data"]["count"], 1)
+        self.assertEqual(response.body["data"]["results"][0]["classname"], "A3CDB_Test_Rifle")
+
     def test_advanced_query_uses_same_result_contract(self):
         response = self.backend.execute_advanced(
             "FROM CfgVehicles WHERE linkedItems CONTAINS \"A3CDB_Test_Helmet\" LIMIT 10"
@@ -42,6 +56,13 @@ class A3BrowserBackendTests(unittest.TestCase):
         self.assertEqual(response.body["data"]["mode"], "advanced")
         self.assertEqual(response.body["data"]["count"], 1)
         self.assertEqual(response.body["data"]["limit"], 10)
+
+    def test_advanced_text_query_uses_same_text_index_contract(self):
+        response = self.backend.execute_advanced(
+            "FROM CfgWeapons WHERE displayName CONTAINS \"rifle\" LIMIT 10"
+        )
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.body["data"]["count"], 1)
 
     def test_validation_and_syntax_errors_are_distinct(self):
         basic = self.backend.execute_basic({"limit": 0})
