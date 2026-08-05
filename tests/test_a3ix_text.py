@@ -29,7 +29,10 @@ class A3IXTextIndexTests(unittest.TestCase):
 
     def test_display_name_substring_search_is_case_insensitive(self):
         results = self.index.contains("displayName", "test rifle")
-        self.assertEqual([item.classname for item in results], ["A3CDB_Test_Rifle"])
+        self.assertEqual(
+            [item.classname for item in results],
+            ["A3CDB_Test_Soldier", "A3CDB_Test_Rifle"],
+        )
 
     def test_root_filter_is_applied_without_partial_results(self):
         self.assertEqual(self.index.contains("classname", "test", root="CfgMagazines"), ())
