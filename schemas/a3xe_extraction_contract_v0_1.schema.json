@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a3-configdb.invalid/schemas/a3xe-extraction-contract-v0.1.json",
+  "title": "A3XE Extraction Contract v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "run", "environment", "selection", "progress", "integrity", "diagnostics"],
+  "properties": {
+    "contractVersion": {"const": "0.1"},
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runId", "extractorVersion", "startedAt", "status"],
+      "properties": {
+        "runId": {"type": "string", "minLength": 1},
+        "extractorVersion": {"type": "string", "minLength": 1},
+        "startedAt": {"type": "string", "format": "date-time"},
+        "completedAt": {"type": ["string", "null"], "format": "date-time"},
+        "status": {"enum": ["running", "complete", "failed", "cancelled"]},
+        "resumeOf": {"type": ["string", "null"]}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["game", "platform", "loadedAddons", "activeDlc"],
+      "properties": {
+        "game": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["product", "version", "build"],
+          "properties": {
+            "product": {"const": "Arma 3"},
+            "version": {"type": "string"},
+            "build": {"type": "string"}
+          }
+        },
+        "platform": {"type": "string", "minLength": 1},
+        "language": {"type": ["string", "null"]},
+        "loadedAddons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["order", "id", "name"],
+            "properties": {
+              "order": {"type": "integer", "minimum": 0},
+              "id": {"type": "string", "minLength": 1},
+              "name": {"type": "string", "minLength": 1},
+              "version": {"type": ["string", "null"]},
+              "source": {"enum": ["base", "dlc", "cdlc", "mod", "unknown"]}
+            }
+          }
+        },
+        "activeDlc": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roots", "propertyMode", "inheritanceMode", "relationMode"],
+      "properties": {
+        "roots": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "propertyMode": {"enum": ["local", "resolved", "local_and_resolved"]},
+        "inheritanceMode": {"const": "explicit_parent"},
+        "relationMode": {"enum": ["none", "known_fields"]}
+      }
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rootsTotal", "rootsComplete", "classesDiscovered", "classesSerialized"],
+      "properties": {
+        "rootsTotal": {"type": "integer", "minimum": 0},
+        "rootsComplete": {"type": "integer", "minimum": 0},
+        "classesDiscovered": {"type": "integer", "minimum": 0},
+        "classesSerialized": {"type": "integer", "minimum": 0},
+        "lastRoot": {"type": ["string", "null"]},
+        "lastClassname": {"type": ["string", "null"]}
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "snapshotDigest", "complete"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "snapshotDigest": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "complete": {"type": "boolean"},
+        "canonicalJson": {"const": true}
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["errors", "warnings", "skipped"],
+      "properties": {
+        "errors": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+        "warnings": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+        "skipped": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}}
+      }
+    }
+  },
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1},
+        "root": {"type": ["string", "null"]},
+        "classname": {"type": ["string", "null"]},
+        "property": {"type": ["string", "null"]}
+      }
+    }
+  }
+}
