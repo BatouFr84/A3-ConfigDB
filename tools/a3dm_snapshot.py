@@ -8,7 +8,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Iterator, Mapping
 
-from tools.a3dm_validator import A3DMValidationError, validate_snapshot
+from tools.a3dm_validator import A3DMValidationError, validate_snapshot_package
 
 
 class A3DMSnapshotError(ValueError):
@@ -27,13 +27,14 @@ class A3DMSnapshot:
     """Read-only view over one validated A3DM snapshot package."""
 
     def __init__(self, package: Mapping[str, Any]):
+        mutable_package = dict(package)
         try:
-            validated = validate_snapshot(dict(package))
+            validated_snapshot = validate_snapshot_package(mutable_package)
         except A3DMValidationError as exc:
             raise A3DMSnapshotError(str(exc)) from exc
 
-        self._manifest = _freeze(validated["manifest"])
-        self._snapshot = _freeze(validated["snapshot"])
+        self._manifest = _freeze(mutable_package["manifest"])
+        self._snapshot = _freeze(validated_snapshot)
         self._roots = self._snapshot["roots"]
 
     @classmethod
