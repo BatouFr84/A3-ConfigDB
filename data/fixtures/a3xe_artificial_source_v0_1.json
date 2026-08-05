@@ -1,0 +1,59 @@
+{
+  "runId": "A3XE_ARTIFICIAL_RUN_0001",
+  "startedAt": "2026-08-05T16:00:00Z",
+  "completedAt": "2026-08-05T16:00:01Z",
+  "environment": {
+    "game": {"product": "Arma 3", "version": "A3CDB-Test-Game-1.0", "build": "artificial"},
+    "platform": "test",
+    "language": "English",
+    "loadedAddons": [
+      {"order": 0, "id": "A3CDB_Test_Core", "name": "A3CDB Test Core", "version": "1.0", "source": "base"},
+      {"order": 1, "id": "A3CDB_Test_Expansion", "name": "A3CDB Test Expansion", "version": "1.0", "source": "mod"}
+    ],
+    "activeDlc": ["A3CDB_TEST_DLC"]
+  },
+  "manifest": {
+    "packageVersion": "0.1.0-artificial",
+    "datasetId": "A3CDB_Artificial_Exporter_V0_1",
+    "snapshotId": "A3CDB_Artificial_Exporter_Snapshot_01",
+    "createdAt": "2026-08-05T16:00:01Z",
+    "extractorVersion": "A3XE-Artificial-0.1",
+    "gameVersion": "A3CDB-Test-Game-1.0",
+    "presetLabel": "Artificial exporter preset",
+    "loadedAddons": [
+      {"order": 0, "id": "A3CDB_Test_Core", "name": "A3CDB Test Core", "version": "1.0"},
+      {"order": 1, "id": "A3CDB_Test_Expansion", "name": "A3CDB Test Expansion", "version": "1.0"}
+    ],
+    "activeDlc": ["A3CDB_TEST_DLC"]
+  },
+  "roots": {
+    "CfgVehicles": {
+      "A3CDB_Test_Man": {
+        "parent": null,
+        "properties": {"displayName": "A3CDB Test Man", "armor": 10, "scope": 1, "simulation": "soldier"}
+      },
+      "A3CDB_Test_Soldier": {
+        "parent": "A3CDB_Test_Man",
+        "properties": {"displayName": "A3CDB Test Rifleman", "armor": 20, "scope": 2, "weapons": ["A3CDB_Test_Rifle"]}
+      }
+    },
+    "CfgWeapons": {
+      "A3CDB_Test_Rifle": {
+        "parent": null,
+        "properties": {"displayName": "A3CDB Test Rifle", "scope": 2, "magazines": ["A3CDB_Test_Magazine"]}
+      }
+    },
+    "CfgMagazines": {
+      "A3CDB_Test_Magazine": {
+        "parent": null,
+        "properties": {"displayName": "A3CDB Test Magazine", "scope": 2, "ammo": "A3CDB_Test_Ammo"}
+      }
+    },
+    "CfgAmmo": {
+      "A3CDB_Test_Ammo": {
+        "parent": null,
+        "properties": {"displayName": "A3CDB Test Ammo", "hit": 8, "caliber": 1}
+      }
+    }
+  }
+}
