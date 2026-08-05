@@ -27,7 +27,10 @@
             "displayName": "A3CDB Test Man",
             "armor": 10,
             "scope": 1,
-            "simulation": "soldier"
+            "simulation": "soldier",
+            "author": "A3CDB Test Team",
+            "dlc": "A3CDB_TEST_DLC",
+            "faction": "A3CDB_TEST_FACTION"
           }
         },
         "A3CDB_Test_Soldier": {
@@ -45,7 +48,9 @@
           "parent": null,
           "properties": {
             "displayName": "A3CDB Test Rifle",
-            "scope": 2
+            "scope": 2,
+            "author": "A3CDB Test Team",
+            "dlc": "A3CDB_TEST_DLC"
           }
         }
       }
