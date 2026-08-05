@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from tools.a3dm_snapshot import A3DMSnapshot
 from tools.a3ql import A3QLSyntaxError, parse_a3ql
 from tools.a3qe import A3QEEngine, A3QEQueryError, A3QEResult
+from tools.a3qe_planner import A3QEPlan
 
 
 class A3QLExecutionError(ValueError):
@@ -20,6 +21,7 @@ class A3QLExecution:
     snapshot_id: str
     limit: int
     results: tuple[A3QEResult, ...]
+    plan: A3QEPlan
 
 
 class A3QLRuntime:
@@ -36,6 +38,9 @@ class A3QLRuntime:
         try:
             normalized = parse_a3ql(source)
             results = self._engine.execute(normalized.to_a3qe())
+            plan = self._engine.last_plan
+            if plan is None:
+                raise A3QEQueryError("query plan was not produced")
         except A3QLSyntaxError:
             raise
         except A3QEQueryError as exc:
@@ -45,6 +50,7 @@ class A3QLRuntime:
             snapshot_id=self.snapshot_id,
             limit=normalized.limit,
             results=results,
+            plan=plan,
         )
 
 
