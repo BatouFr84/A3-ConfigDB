@@ -18,6 +18,7 @@ class A3QLExecutionError(ValueError):
 class A3QLExecution:
     source: str
     snapshot_id: str
+    limit: int
     results: tuple[A3QEResult, ...]
 
 
@@ -39,7 +40,12 @@ class A3QLRuntime:
             raise
         except A3QEQueryError as exc:
             raise A3QLExecutionError(str(exc)) from exc
-        return A3QLExecution(source=source, snapshot_id=self.snapshot_id, results=results)
+        return A3QLExecution(
+            source=source,
+            snapshot_id=self.snapshot_id,
+            limit=normalized.limit,
+            results=results,
+        )
 
 
 def execute_a3ql(snapshot: A3DMSnapshot, source: str) -> tuple[A3QEResult, ...]:
