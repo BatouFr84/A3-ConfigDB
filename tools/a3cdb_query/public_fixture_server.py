@@ -5,7 +5,7 @@ import mimetypes
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from tools.a3_browser_backend import A3BrowserBackend
 from tools.a3dm_snapshot import A3DMSnapshot
@@ -17,7 +17,7 @@ SNAPSHOT = A3DMSnapshot.from_file(FIXTURE)
 BACKEND = A3BrowserBackend(SNAPSHOT)
 
 
-def _json(handler: BaseHTTPRequestHandler, status: int, payload: object) -> None:
+def _json(handler, status, payload):
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
@@ -26,13 +26,12 @@ def _json(handler: BaseHTTPRequestHandler, status: int, payload: object) -> None
     handler.wfile.write(body)
 
 
-def _browser_response(handler: BaseHTTPRequestHandler, response) -> None:
+def _browser_response(handler, response):
     body = dict(response.body)
     if response.status == 200 and body.get("status") == "ok" and "results" in body.get("data", {}):
         enriched = []
         for item in body["data"]["results"]:
-            root = item["root"]
-            classname = item["classname"]
+            root, classname = item["root"], item["classname"]
             class_data = SNAPSHOT.get_class(root, classname)
             resolved = SNAPSHOT.resolved_properties(root, classname)
             enriched.append({**item, "displayName": resolved.get("displayName"), "parent": class_data.get("parent")})
@@ -41,15 +40,26 @@ def _browser_response(handler: BaseHTTPRequestHandler, response) -> None:
 
 
 class Handler(BaseHTTPRequestHandler):
-    def log_message(self, fmt: str, *args: object) -> None:
+    def log_message(self, fmt, *args):
         print(f"{self.address_string()} - {fmt % args}")
 
-    def do_GET(self) -> None:
+    def do_GET(self):
         path = urlparse(self.path).path
         if path == "/healthz":
             return _json(self, 200, {"status": "ok", "dataset": "artificial"})
         if path == "/api/capabilities":
             return _browser_response(self, BACKEND.capabilities())
+        if path.startswith("/api/class/"):
+            parts = path.split("/", 4)
+            if len(parts) != 5:
+                return _json(self, 400, {"status": "error", "error": {"code": "INVALID_CLASS_PATH", "message": "root and classname are required"}})
+            root, classname = unquote(parts[3]), unquote(parts[4])
+            try:
+                local = SNAPSHOT.get_class(root, classname)
+                resolved = SNAPSHOT.resolved_properties(root, classname)
+            except KeyError as exc:
+                return _json(self, 404, {"status": "error", "error": {"code": "CLASS_NOT_FOUND", "message": str(exc)}})
+            return _json(self, 200, {"status": "ok", "data": {"root": root, "classname": classname, "parent": local.get("parent"), "localProperties": dict(local.get("properties", {})), "resolvedProperties": dict(resolved)}})
         target = WEB / ("index.html" if path == "/" else path.lstrip("/"))
         resolved = target.resolve()
         if not target.is_file() or (resolved != WEB.resolve() and WEB.resolve() not in resolved.parents):
@@ -62,7 +72,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def do_POST(self) -> None:
+    def do_POST(self):
         path = urlparse(self.path).path
         if path not in {"/api/basic", "/api/advanced"}:
             return _json(self, 404, {"error": "not_found"})
@@ -79,10 +89,10 @@ class Handler(BaseHTTPRequestHandler):
         return _browser_response(self, BACKEND.execute_advanced(source))
 
 
-def main() -> None:
+def main():
     port = int(os.environ.get("PORT", "8080"))
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    print(f"A3-ConfigDB PUB026 listening on 0.0.0.0:{port}")
+    print(f"A3-ConfigDB PUB027 listening on 0.0.0.0:{port}")
     server.serve_forever()
 
 
