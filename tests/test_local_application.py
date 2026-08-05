@@ -25,7 +25,7 @@ class LocalApplicationTests(unittest.TestCase):
         self.assertTrue(response.body["data"]["loaded"])
         self.assertEqual(response.body["data"]["snapshotId"], "A3CDB_Test_Snapshot_01")
         self.assertEqual(response.body["data"]["classCount"], 3)
-        self.assertEqual(response.body["data"]["manifest"]["presetLabel"], "A3CDB Test Preset")
+        self.assertEqual(response.body["data"]["manifest"]["presetLabel"], "Artificial test preset")
 
     def test_missing_dataset_keeps_application_alive(self):
         application = A3ConfigDBApplication.from_dataset(FIXTURE.with_name("missing.json"))
