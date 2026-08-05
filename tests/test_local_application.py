@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -15,7 +16,36 @@ class LocalApplicationTests(unittest.TestCase):
         response = self.application.health()
         self.assertEqual(response.status, 200)
         self.assertEqual(response.body["status"], "ok")
+        self.assertTrue(response.body["datasetLoaded"])
         self.assertEqual(response.body["dataset"], "A3CDB_Test_Snapshot_01")
+
+    def test_dataset_status_exposes_manifest_and_counts(self):
+        response = self.application.dataset_status()
+        self.assertEqual(response.status, 200)
+        self.assertTrue(response.body["data"]["loaded"])
+        self.assertEqual(response.body["data"]["snapshotId"], "A3CDB_Test_Snapshot_01")
+        self.assertEqual(response.body["data"]["classCount"], 3)
+        self.assertEqual(response.body["data"]["manifest"]["presetLabel"], "A3CDB Test Preset")
+
+    def test_missing_dataset_keeps_application_alive(self):
+        application = A3ConfigDBApplication.from_dataset(FIXTURE.with_name("missing.json"))
+        health = application.health()
+        status = application.dataset_status()
+        query = application.execute_advanced("FROM CfgVehicles LIMIT 10")
+        self.assertEqual(health.status, 200)
+        self.assertFalse(health.body["datasetLoaded"])
+        self.assertFalse(status.body["data"]["loaded"])
+        self.assertIsNotNone(status.body["data"]["error"])
+        self.assertEqual(query.status, 503)
+        self.assertEqual(query.body["error"]["code"], "DATASET_NOT_LOADED")
+
+    def test_invalid_dataset_is_rejected_without_crashing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "invalid.json"
+            source.write_text("{not json", encoding="utf-8")
+            application = A3ConfigDBApplication.from_dataset(source)
+        self.assertFalse(application.dataset_loaded)
+        self.assertIn("invalid JSON", application.load_error)
 
     def test_basic_search_is_enriched_for_browser(self):
         response = self.application.execute_basic({
