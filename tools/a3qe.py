@@ -9,6 +9,7 @@ from typing import Any
 from tools.a3dm_snapshot import A3DMSnapshot
 from tools.a3ix_exact import A3IXExactIndex
 from tools.a3ix_property import A3IXPropertyIndex
+from tools.a3ix_text import A3IXTextIndex
 
 
 class A3QEQueryError(ValueError):
@@ -42,10 +43,15 @@ class A3QEEngine:
         self._snapshot = snapshot
         self._exact = A3IXExactIndex(snapshot)
         self._property = A3IXPropertyIndex(snapshot)
+        self._text = A3IXTextIndex(snapshot)
 
     @property
     def snapshot_id(self) -> str:
         return self._snapshot.snapshot_id
+
+    @property
+    def text_indexed_fields(self) -> tuple[str, ...]:
+        return self._text.fields
 
     def execute(self, query: A3QEQuery) -> tuple[A3QEResult, ...]:
         self._validate_query(query)
@@ -83,7 +89,10 @@ class A3QEEngine:
 
         if operator == "contains":
             try:
-                refs = self._property.contains(condition.field, condition.value, root=root)
+                if condition.field in self._text.fields:
+                    refs = self._text.contains(condition.field, condition.value, root=root)
+                else:
+                    refs = self._property.contains(condition.field, condition.value, root=root)
             except KeyError as exc:
                 raise A3QEQueryError(str(exc)) from exc
             return {A3QEResult(ref.root, ref.classname) for ref in refs}
