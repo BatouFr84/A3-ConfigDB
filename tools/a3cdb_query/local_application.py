@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from tools.a3_browser_backend import A3BrowserBackend
-from tools.a3dm_snapshot import A3DMSnapshot
+from tools.a3dm_snapshot import A3DMSnapshot, A3DMSnapshotError
 
 
 @dataclass(frozen=True)
@@ -48,7 +48,7 @@ class A3ConfigDBApplication:
         try:
             local = self.snapshot.get_class(root, classname)
             resolved = self.snapshot.resolved_properties(root, classname)
-        except KeyError as exc:
+        except A3DMSnapshotError as exc:
             return ApplicationResponse(404, {
                 "status": "error",
                 "error": {"code": "CLASS_NOT_FOUND", "message": str(exc)},
