@@ -10,6 +10,7 @@ from tools.a3dm_snapshot import A3DMSnapshot
 from tools.a3ix_exact import A3IXExactIndex
 from tools.a3ix_property import A3IXPropertyIndex
 from tools.a3ix_text import A3IXTextIndex
+from tools.a3qe_planner import A3QEPlan, A3QEPlanner
 
 
 class A3QEQueryError(ValueError):
@@ -37,13 +38,18 @@ class A3QEResult:
 
 
 class A3QEEngine:
-    """Deterministic AND query executor using A3IX indexes only."""
+    """Deterministic AND executor with an explicit complete-index plan."""
 
     def __init__(self, snapshot: A3DMSnapshot):
         self._snapshot = snapshot
         self._exact = A3IXExactIndex(snapshot)
         self._property = A3IXPropertyIndex(snapshot)
         self._text = A3IXTextIndex(snapshot)
+        self._planner = A3QEPlanner(
+            text_fields=self._text.fields,
+            property_fields=self._property.property_paths,
+        )
+        self._last_plan: A3QEPlan | None = None
 
     @property
     def snapshot_id(self) -> str:
@@ -53,51 +59,57 @@ class A3QEEngine:
     def text_indexed_fields(self) -> tuple[str, ...]:
         return self._text.fields
 
-    def execute(self, query: A3QEQuery) -> tuple[A3QEResult, ...]:
+    @property
+    def last_plan(self) -> A3QEPlan | None:
+        return self._last_plan
+
+    def explain(self, query: A3QEQuery) -> A3QEPlan:
         self._validate_query(query)
+        try:
+            return self._planner.plan(query, lambda condition, index: self._estimate(query, condition, index))
+        except (KeyError, ValueError) as exc:
+            raise A3QEQueryError(str(exc)) from exc
 
-        candidate_sets: list[set[A3QEResult]] = []
-        if query.root is not None:
-            candidate_sets.append({
-                A3QEResult(ref.root, ref.classname)
-                for ref in self._exact.exact("root", query.root)
-            })
+    def execute(self, query: A3QEQuery) -> tuple[A3QEResult, ...]:
+        plan = self.explain(query)
+        self._last_plan = plan
+        conditions = {ordinal: condition for ordinal, condition in enumerate(query.filters)}
+        matches: set[A3QEResult] | None = None
 
-        for condition in query.filters:
-            candidate_sets.append(self._execute_filter(condition, query.root))
+        for step in plan.steps:
+            if step.ordinal == -1:
+                refs = self._exact.exact("root", query.root)
+            else:
+                refs = self._refs_for(conditions[step.ordinal], query.root, step.index)
+            current = {A3QEResult(ref.root, ref.classname) for ref in refs}
+            matches = current if matches is None else matches.intersection(current)
+            if not matches:
+                break
 
-        if candidate_sets:
-            matches = set.intersection(*candidate_sets)
-        else:
+        if matches is None:
             matches = {
                 A3QEResult(root, classname)
                 for root in self._snapshot.roots
                 for classname in self._snapshot.class_names(root)
             }
-
         return tuple(sorted(matches))[: query.limit]
 
-    def _execute_filter(self, condition: A3QEFilter, root: str | None) -> set[A3QEResult]:
-        operator = condition.operator.casefold()
+    def _estimate(self, query: A3QEQuery, condition: A3QEFilter | None, index: str) -> int:
+        if condition is None:
+            return len(self._exact.exact("root", query.root))
+        return len(self._refs_for(condition, query.root, index))
 
-        if operator == "eq":
-            try:
-                refs = self._exact.exact(condition.field, condition.value, root=root)
-            except KeyError as exc:
-                raise A3QEQueryError(str(exc)) from exc
-            return {A3QEResult(ref.root, ref.classname) for ref in refs}
-
-        if operator == "contains":
-            try:
-                if condition.field in self._text.fields:
-                    refs = self._text.contains(condition.field, condition.value, root=root)
-                else:
-                    refs = self._property.contains(condition.field, condition.value, root=root)
-            except KeyError as exc:
-                raise A3QEQueryError(str(exc)) from exc
-            return {A3QEResult(ref.root, ref.classname) for ref in refs}
-
-        raise A3QEQueryError(f"unsupported operator: {condition.operator}")
+    def _refs_for(self, condition: A3QEFilter, root: str | None, index: str):
+        try:
+            if index == "exact":
+                return self._exact.exact(condition.field, condition.value, root=root)
+            if index == "text":
+                return self._text.contains(condition.field, condition.value, root=root)
+            if index == "property":
+                return self._property.contains(condition.field, condition.value, root=root)
+        except KeyError as exc:
+            raise A3QEQueryError(str(exc)) from exc
+        raise A3QEQueryError(f"unsupported index route: {index}")
 
     def _validate_query(self, query: A3QEQuery) -> None:
         if not isinstance(query, A3QEQuery):
