@@ -19,6 +19,7 @@ class A3QLRuntimeTests(unittest.TestCase):
             'FROM CfgVehicles WHERE scope EQ 2 AND linkedItems CONTAINS "A3CDB_Test_Helmet" LIMIT 25'
         )
         self.assertEqual(execution.snapshot_id, "A3CDB_Test_Snapshot_01")
+        self.assertEqual(execution.limit, 25)
         self.assertEqual(
             [(item.root, item.classname) for item in execution.results],
             [("CfgVehicles", "A3CDB_Test_Soldier")],
