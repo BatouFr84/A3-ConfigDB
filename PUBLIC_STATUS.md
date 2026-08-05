@@ -2,80 +2,77 @@
 
 ## Current checkpoint
 
-`PUB028 — Complete project recap and architecture checkpoint`
+`PUB044 — Full Project Checkpoint and Technical Audit`
 
-PUB028 is a documentary consolidation build. Its code baseline is the validated `PUB027` class viewer checkpoint.
-
-## Validated end-to-end foundation
-
-The public repository currently provides:
-
-- a sanitized AGPL-3.0-or-later repository containing artificial data only;
-- A3DM complete snapshot schema and fail-closed validation;
-- immutable snapshot loading and inherited-property resolution;
-- A3IX exact and nested-property index baselines;
-- A3QE deterministic multi-filter execution;
-- A3QM normalized query model;
-- A3QL v0.1 parser and runtime;
-- Browser backend with stable JSON success/error envelopes;
-- mobile-first Basic and Advanced search interfaces;
-- Basic and C++-style Advanced class sheets;
-- public Python, compilation and Docker CI validation.
+PUB044 consolidates the validated implementation through `PUB043` and defines the controlled route to the first real Arma 3 dataset.
 
 ## Current functional chain
 
 ```text
-Artificial A3DM snapshot
-→ validation
-→ immutable loading
-→ exact/property indexing
-→ Basic or A3QL query
-→ A3QE execution
-→ result table
-→ Basic or Advanced class viewer
+Controlled SQF capture prototype
+→ capture validation
+→ inheritance reconstruction
+→ resolved properties
+→ native relations
+→ A3DM snapshot
+→ local dataset loader
+→ A3IX indexes
+→ A3QE / A3QL queries
+→ Browser navigation and exports
 ```
 
-## Explicit limitations
+## Stable or functional baselines
 
-The public preview does not yet include:
+- sanitized AGPL-3.0-or-later public repository with artificial fixtures only;
+- A3DM snapshot schema, validator and immutable loader;
+- A3IX exact, property and text indexes;
+- A3QM, A3QE and A3QL v0.1;
+- hybrid query planner, sorting, pagination and execution metadata;
+- local HTTP application and local dataset loading;
+- mobile-first Basic and Advanced Browser;
+- class sheets, inheritance and relation navigation;
+- JSON, CSV, Markdown, SQF and C++-style exports;
+- A3XE extraction contract and artificial exporter;
+- controlled `CfgWeapons` SQF capture prototype;
+- integrity/resume primitives;
+- complete inheritance, resolved-property and native-relation derivation.
 
-- extraction from a local Arma 3 installation;
-- user-selected local dataset loading;
-- compressed or split snapshot storage;
-- persistent or text indexes;
-- a hybrid query planner;
-- sorting and pagination;
-- navigable inheritance and relation graphs;
-- unified exports;
-- offline desktop packaging.
+## Main unfinished area
 
-No real Arma 3, DLC, cDLC or mod configuration data is distributed.
+The Python and Browser architecture is ahead of the real Arma-side extractor.
+
+Still required:
+
+- multi-root SQF capture;
+- broader typed property extraction;
+- batching and real SQF checkpoints;
+- real addon/load-order provenance acquisition;
+- first controlled PC extraction;
+- first partial then complete Vanilla snapshot;
+- large-dataset performance and packaging work.
 
 ## Architectural doctrine
 
 - One extraction is one complete autonomous final snapshot.
-- Addon order is recorded as provenance metadata.
-- Differential storage is not part of the A3DM core; future comparison belongs to A3DIFF.
-- A3XE is the central future extractor and dataset builder.
-- `Diagtor` is reserved for a later dataset diagnostic tool.
-- Unsupported execution must fail explicitly; silent incomplete results are forbidden.
+- The final state visible in `configFile` is authoritative.
+- Addon order is recorded as provenance, not treated as universal.
+- Differential comparison belongs to future A3DIFF, not A3DM storage.
+- Unsupported or incomplete execution must fail explicitly.
+- `Diagtor` remains deferred until representative real datasets exist.
 
-## Next planned sequence
+## Immediate sequence
 
 ```text
-PUB029  Local HTTP application baseline
-PUB030  Local dataset loader
-PUB031  A3IX text index baseline
-PUB032  Hybrid query planner
-PUB033  Sorting, pagination and execution metadata
-PUB034  Relations baseline
-PUB035  Browser navigation baseline
-PUB036  Export baseline
-PUB037+ A3XE extraction foundation
+PUB045  Multi-root extraction baseline
+PUB046  First controlled real Arma 3 PC test
+PUB047  Typed property coverage
+PUB048  SQF batching and checkpoints
+PUB049  First partial Vanilla snapshot
+PUB050+ Full Vanilla candidate and optimization
 ```
 
-See [`docs/checkpoints/PUB028_ARCHITECTURE_CHECKPOINT.md`](docs/checkpoints/PUB028_ARCHITECTURE_CHECKPOINT.md) for the complete architecture and [`ROADMAP.md`](ROADMAP.md) for the updated route to 1.0.
+See [`docs/checkpoints/PUB044_FULL_PROJECT_AUDIT.md`](docs/checkpoints/PUB044_FULL_PROJECT_AUDIT.md) for the complete mobile-readable audit.
 
 ## Repository boundary
 
-The historical development repository remains private under `A3-ConfigDB-private`. This public repository has an independent sanitized history and must remain free of extracted real game configuration databases.
+The historical development repository remains private under `A3-ConfigDB-private`. The public `A3-ConfigDB` repository distributes software, schemas and artificial fixtures, not extracted real Arma 3, DLC, cDLC or mod databases.
