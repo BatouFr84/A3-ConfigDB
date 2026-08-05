@@ -50,6 +50,8 @@ def create_handler(application: A3ConfigDBApplication, web_root: Path = DEFAULT_
             path = urlparse(self.path).path
             if path == "/healthz":
                 return self._json(application.health())
+            if path == "/api/dataset":
+                return self._json(application.dataset_status())
             if path == "/api/capabilities":
                 return self._json(application.capabilities())
             if path.startswith("/api/class/"):
@@ -97,9 +99,14 @@ def main():
     host = os.environ.get("A3CDB_HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "8080"))
     dataset = Path(os.environ.get("A3CDB_DATASET", str(DEFAULT_DATASET)))
-    server = build_server(host, port, dataset)
+    application = A3ConfigDBApplication.from_dataset(dataset)
+    server = ThreadingHTTPServer((host, port), create_handler(application, DEFAULT_WEB))
     print(f"A3-ConfigDB local application listening on http://{host}:{port}")
-    print(f"Dataset: {dataset}")
+    if application.dataset_loaded:
+        print(f"Dataset loaded: {dataset}")
+    else:
+        print(f"Dataset unavailable: {dataset}")
+        print(f"Reason: {application.load_error}")
     server.serve_forever()
 
 
