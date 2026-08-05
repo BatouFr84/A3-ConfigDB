@@ -36,6 +36,7 @@ class A3BrowserBackend:
             "snapshot": self._snapshot_metadata(),
             "queryModes": ["basic", "advanced"],
             "operators": ["eq", "contains"],
+            "textIndexedFields": list(self._engine.text_indexed_fields),
             "maxLimit": 500,
         })
 
@@ -59,10 +60,7 @@ class A3BrowserBackend:
         return self._results("advanced", execution.results, execution.limit)
 
     def _results(self, mode: str, results: Any, limit: int) -> BrowserBackendResponse:
-        items = [
-            {"root": item.root, "classname": item.classname}
-            for item in results
-        ]
+        items = [{"root": item.root, "classname": item.classname} for item in results]
         return self._ok({
             "mode": mode,
             "snapshot": self._snapshot_metadata(),
