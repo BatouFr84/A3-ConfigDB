@@ -1,0 +1,76 @@
+{
+  "captureVersion": "0.2",
+  "source": "arma3_sqf",
+  "artificial": true,
+  "datasetId": "A3XE_MULTI_ROOT_FIXTURE",
+  "snapshotId": "A3XE_MULTI_ROOT_FIXTURE_01",
+  "runId": "A3XE_MULTI_ROOT_RUN_01",
+  "createdAt": "2026-08-05T00:00:00Z",
+  "startedAt": "2026-08-05T00:00:00Z",
+  "completedAt": "2026-08-05T00:00:01Z",
+  "presetLabel": "Artificial multi-root preset",
+  "platform": "windows",
+  "language": "English",
+  "game": {
+    "product": "Arma 3",
+    "version": "fixture",
+    "build": "fixture"
+  },
+  "loadedAddons": [],
+  "activeDlc": [],
+  "roots": {
+    "CfgAmmo": [
+      {
+        "classname": "A3CDB_Test_Ammo",
+        "parent": null,
+        "properties": {
+          "displayName": "A3CDB Test Ammo"
+        }
+      }
+    ],
+    "CfgMagazines": [
+      {
+        "classname": "A3CDB_Test_Magazine",
+        "parent": null,
+        "properties": {
+          "displayName": "A3CDB Test Magazine",
+          "ammo": "A3CDB_Test_Ammo"
+        }
+      }
+    ],
+    "CfgVehicles": [
+      {
+        "classname": "A3CDB_Test_Vehicle_Base",
+        "parent": null,
+        "properties": {
+          "author": "A3CDB"
+        }
+      },
+      {
+        "classname": "A3CDB_Test_Vehicle",
+        "parent": "A3CDB_Test_Vehicle_Base",
+        "properties": {
+          "displayName": "A3CDB Test Vehicle",
+          "weapons": ["A3CDB_Test_Weapon"]
+        }
+      }
+    ],
+    "CfgWeapons": [
+      {
+        "classname": "A3CDB_Test_Weapon_Base",
+        "parent": null,
+        "properties": {
+          "author": "A3CDB"
+        }
+      },
+      {
+        "classname": "A3CDB_Test_Weapon",
+        "parent": "A3CDB_Test_Weapon_Base",
+        "properties": {
+          "displayName": "A3CDB Test Weapon",
+          "magazines": ["A3CDB_Test_Magazine"]
+        }
+      }
+    ]
+  }
+}
