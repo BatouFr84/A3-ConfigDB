@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Browser-facing backend facade for A3-ConfigDB.
-
-This module is transport-neutral: a local HTTP server, desktop wrapper, or test
-harness can call it without depending on a web framework.
-"""
+"""Browser-facing backend facade for A3-ConfigDB."""
 
 from __future__ import annotations
 
@@ -15,6 +11,7 @@ from tools.a3ql import A3QLSyntaxError
 from tools.a3ql_runtime import A3QLExecutionError, A3QLRuntime
 from tools.a3qm import A3QMError, normalize_query
 from tools.a3qe import A3QEEngine, A3QEQueryError
+from tools.a3qe_planner import A3QEPlan
 
 
 @dataclass(frozen=True)
@@ -37,6 +34,11 @@ class A3BrowserBackend:
             "queryModes": ["basic", "advanced"],
             "operators": ["eq", "contains"],
             "textIndexedFields": list(self._engine.text_indexed_fields),
+            "planner": {
+                "indexes": ["exact", "property", "text"],
+                "completeResultsOnly": True,
+                "silentFallback": False,
+            },
             "maxLimit": 500,
         })
 
@@ -44,11 +46,14 @@ class A3BrowserBackend:
         try:
             normalized = normalize_query(payload)
             results = self._engine.execute(normalized.to_a3qe())
+            plan = self._engine.last_plan
+            if plan is None:
+                raise A3QEQueryError("query plan was not produced")
         except A3QMError as exc:
             return self._error(400, "QUERY_VALIDATION_ERROR", str(exc))
         except A3QEQueryError as exc:
             return self._error(422, "QUERY_EXECUTION_ERROR", str(exc))
-        return self._results("basic", results, normalized.limit)
+        return self._results("basic", results, normalized.limit, plan)
 
     def execute_advanced(self, source: str) -> BrowserBackendResponse:
         try:
@@ -57,15 +62,16 @@ class A3BrowserBackend:
             return self._error(400, "A3QL_SYNTAX_ERROR", str(exc))
         except A3QLExecutionError as exc:
             return self._error(422, "A3QL_EXECUTION_ERROR", str(exc))
-        return self._results("advanced", execution.results, execution.limit)
+        return self._results("advanced", execution.results, execution.limit, execution.plan)
 
-    def _results(self, mode: str, results: Any, limit: int) -> BrowserBackendResponse:
+    def _results(self, mode: str, results: Any, limit: int, plan: A3QEPlan) -> BrowserBackendResponse:
         items = [{"root": item.root, "classname": item.classname} for item in results]
         return self._ok({
             "mode": mode,
             "snapshot": self._snapshot_metadata(),
             "limit": limit,
             "count": len(items),
+            "executionPlan": plan.to_dict(),
             "results": items,
         })
 
