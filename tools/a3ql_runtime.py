@@ -20,6 +20,11 @@ class A3QLExecution:
     source: str
     snapshot_id: str
     limit: int
+    offset: int
+    total: int
+    sort: str
+    direction: str
+    duration_ms: float
     results: tuple[A3QEResult, ...]
     plan: A3QEPlan
 
@@ -37,10 +42,7 @@ class A3QLRuntime:
     def execute(self, source: str) -> A3QLExecution:
         try:
             normalized = parse_a3ql(source)
-            results = self._engine.execute(normalized.to_a3qe())
-            plan = self._engine.last_plan
-            if plan is None:
-                raise A3QEQueryError("query plan was not produced")
+            page = self._engine.execute_page(normalized.to_a3qe())
         except A3QLSyntaxError:
             raise
         except A3QEQueryError as exc:
@@ -48,12 +50,16 @@ class A3QLRuntime:
         return A3QLExecution(
             source=source,
             snapshot_id=self.snapshot_id,
-            limit=normalized.limit,
-            results=results,
-            plan=plan,
+            limit=page.limit,
+            offset=page.offset,
+            total=page.total,
+            sort=page.sort,
+            direction=page.direction,
+            duration_ms=page.duration_ms,
+            results=page.results,
+            plan=page.plan,
         )
 
 
 def execute_a3ql(snapshot: A3DMSnapshot, source: str) -> tuple[A3QEResult, ...]:
-    """Convenience helper returning only the deterministic result tuple."""
     return A3QLRuntime(snapshot).execute(source).results
