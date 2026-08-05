@@ -27,7 +27,7 @@ class A3QMQuery:
     filters: tuple[A3QMFilter, ...]
     limit: int
     offset: int = 0
-    sort: str = "classname"
+    sort: str = "root"
     direction: str = "asc"
 
     def to_a3qe(self) -> A3QEQuery:
@@ -69,7 +69,7 @@ def normalize_query(payload: Mapping[str, Any]) -> A3QMQuery:
     offset = payload.get("offset", 0)
     if not isinstance(offset, int) or isinstance(offset, bool) or offset < 0:
         raise A3QMError("offset must be a non-negative integer")
-    sort = payload.get("sort", "classname")
+    sort = payload.get("sort", "root")
     if sort not in {"classname", "displayName", "root"}:
         raise A3QMError("sort must be classname, displayName, or root")
     direction = payload.get("direction", "asc")
