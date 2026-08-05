@@ -13,8 +13,8 @@ class A3DMSnapshotTests(unittest.TestCase):
 
     def test_metadata_and_root_access(self):
         snapshot = self.load_snapshot()
-        self.assertEqual(snapshot.snapshot_id, "A3CDB_Test_Snapshot")
-        self.assertEqual(snapshot.game_version, "2.00-test")
+        self.assertEqual(snapshot.snapshot_id, "A3CDB_Test_Snapshot_01")
+        self.assertEqual(snapshot.game_version, "A3CDB-Test-Game-1.0")
         self.assertIn("CfgVehicles", snapshot.roots)
         self.assertIn("A3CDB_Test_Soldier", snapshot.class_names("CfgVehicles"))
 
