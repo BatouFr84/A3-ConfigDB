@@ -56,7 +56,7 @@ class A3BrowserBackend:
             return self._error(400, "A3QL_SYNTAX_ERROR", str(exc))
         except A3QLExecutionError as exc:
             return self._error(422, "A3QL_EXECUTION_ERROR", str(exc))
-        return self._results("advanced", execution.results, execution.query.limit)
+        return self._results("advanced", execution.results, execution.limit)
 
     def _results(self, mode: str, results: Any, limit: int) -> BrowserBackendResponse:
         items = [
