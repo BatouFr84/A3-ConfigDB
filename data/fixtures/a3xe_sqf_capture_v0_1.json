@@ -1,0 +1,54 @@
+{
+  "captureVersion": "0.1",
+  "source": "arma3_sqf",
+  "artificial": true,
+  "runId": "A3XE_SQF_TEST_RUN_0001",
+  "datasetId": "A3XE_SQF_TEST_DATASET",
+  "snapshotId": "A3XE_SQF_TEST_SNAPSHOT_01",
+  "createdAt": "2026-08-05T00:00:00Z",
+  "startedAt": "2026-08-05T00:00:00Z",
+  "completedAt": "2026-08-05T00:00:01Z",
+  "presetLabel": "Artificial SQF capture fixture",
+  "platform": "test",
+  "language": "English",
+  "game": {
+    "product": "Arma 3",
+    "version": "A3CDB-Test-Game-1.0",
+    "build": "test"
+  },
+  "loadedAddons": [
+    {
+      "order": 0,
+      "id": "A3CDB_Test_Core",
+      "name": "A3CDB Test Core",
+      "version": "1.0",
+      "source": "base"
+    }
+  ],
+  "activeDlc": [],
+  "root": "CfgWeapons",
+  "selection": {
+    "maxClasses": 10,
+    "propertyAllowList": ["displayName", "scope", "author", "dlc"]
+  },
+  "classes": [
+    {
+      "classname": "A3CDB_Test_Weapon_Base",
+      "parent": null,
+      "properties": {
+        "displayName": "A3CDB Test Weapon Base",
+        "scope": 1,
+        "author": "A3CDB Test Team"
+      }
+    },
+    {
+      "classname": "A3CDB_Test_Rifle",
+      "parent": "A3CDB_Test_Weapon_Base",
+      "properties": {
+        "displayName": "A3CDB Test Rifle",
+        "scope": 2,
+        "dlc": "A3CDB_TEST_DLC"
+      }
+    }
+  ]
+}
