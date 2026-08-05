@@ -35,11 +35,7 @@ def _browser_response(handler: BaseHTTPRequestHandler, response) -> None:
             classname = item["classname"]
             class_data = SNAPSHOT.get_class(root, classname)
             resolved = SNAPSHOT.resolved_properties(root, classname)
-            enriched.append({
-                **item,
-                "displayName": resolved.get("displayName"),
-                "parent": class_data.get("parent"),
-            })
+            enriched.append({**item, "displayName": resolved.get("displayName"), "parent": class_data.get("parent")})
         body = {**body, "data": {**body["data"], "results": enriched}}
     _json(handler, response.status, body)
 
@@ -54,7 +50,6 @@ class Handler(BaseHTTPRequestHandler):
             return _json(self, 200, {"status": "ok", "dataset": "artificial"})
         if path == "/api/capabilities":
             return _browser_response(self, BACKEND.capabilities())
-
         target = WEB / ("index.html" if path == "/" else path.lstrip("/"))
         resolved = target.resolve()
         if not target.is_file() or (resolved != WEB.resolve() and WEB.resolve() not in resolved.parents):
@@ -68,20 +63,26 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_POST(self) -> None:
-        if urlparse(self.path).path != "/api/basic":
+        path = urlparse(self.path).path
+        if path not in {"/api/basic", "/api/advanced"}:
             return _json(self, 404, {"error": "not_found"})
         try:
             length = min(int(self.headers.get("Content-Length", "0")), 65536)
             payload = json.loads(self.rfile.read(length) or b"{}")
         except (ValueError, json.JSONDecodeError) as exc:
             return _json(self, 400, {"status": "error", "error": {"code": "INVALID_JSON", "message": str(exc)}})
-        return _browser_response(self, BACKEND.execute_basic(payload))
+        if path == "/api/basic":
+            return _browser_response(self, BACKEND.execute_basic(payload))
+        source = payload.get("query") if isinstance(payload, dict) else None
+        if not isinstance(source, str):
+            return _json(self, 400, {"status": "error", "error": {"code": "INVALID_A3QL_REQUEST", "message": "query must be a string"}})
+        return _browser_response(self, BACKEND.execute_advanced(source))
 
 
 def main() -> None:
     port = int(os.environ.get("PORT", "8080"))
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
-    print(f"A3-ConfigDB PUB025 listening on 0.0.0.0:{port}")
+    print(f"A3-ConfigDB PUB026 listening on 0.0.0.0:{port}")
     server.serve_forever()
 
 
